@@ -44,8 +44,11 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
-    fuel = 0
+    lastLaptime = 0
+    fuel = -1
     onPitRoad = -1
+    enterPits = 0
+    exitPits = 0
     sessionId = ''
 
 # here we check if we are connected to iracing
@@ -59,7 +62,10 @@ def check_iracing():
         state.tick = 0
         state.fuel = -1
         state.lap = -1
+        state.lastLaptime = 0
         state.onPitRoad = -1
+        state.enterPits = 0
+        state.exitPits = 0
         state.sessionId = ''
 
         # we are shut down ir library (clear all internal variables)
@@ -79,12 +85,7 @@ def check_iracing():
             state.ir_connected = True
             # Check need and open serial connection
 
-            state.sessionId = str(ir['WeekendInfo']['SessionID']) + '#' + str(ir['WeekendInfo']['SubSessionID'])
-            state.fuel = ir['FuelLevel']
-
             print('irsdk connected')
-            print('SessionID    ' + state.sessionId)
-            
     
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -99,30 +100,54 @@ def loop():
 
     state.tick += 1
     lap = ir['LapCompleted']
+    lastLaptime = 0
+    if ir['LapLastLapTime'] > 0:
+        lastLaptime = ir['LapLastLapTime']
+
     data = {}
-    if lap != state.lap:
+    if lap != state.lap and lastLaptime != state.LapLastLapTime:
         state.lap = lap
+        state.LapLastLapTime = lastLaptime
 
         data['Driver'] = ir['DriverInfo']['DriverUserID']
-        data['Laptime'] = ir['LapLastLapTime']
+        data['Laptime'] = state.lastLaptime
+        
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
-
-        data['ExitPit'] = 0
-        data['StopStart'] = 0
-        if ir['OnPitRoad']:
-            if state.onPitRoad == 0:
-                state.onPitRoad = 1
-                data['EnterPit'] = datetime.now()
-        else:
-            if state.onPitRoad == 1:
-                state.onPitRoad = 0
-                data['ExitPit'] = datetime.now()
-
         data['FuelLevel'] = ir['FuelLevel']
+        
+        if state.enterPits > 0:
+            data['PitEnter'] = state.enterPits
+            state.enterPits = 0
+        else:
+            data['PitEnter'] = 0
+
+        if state.exitPits > 0:
+            data['PitExit'] = state.exitPits
+            state.exitPits = 0
+        else:
+            data['PitExit'] = 0
+
+#        data['ExitPit'] = 0
+#        data['StopStart'] = 0
 
         if debug:
-            print(json.dumps(data))
+            print(state.sessionId + ' lap ' + str(lap) + ': ' + json.dumps(data))
+    else:
+        if state.sessionId == '':
+            state.sessionId = str(ir['WeekendInfo']['SessionID']) + '#' + str(ir['WeekendInfo']['SubSessionID'])
+
+        if state.fuel == -1:
+            state.fuel = ir['FuelLevel']
+
+        if ir['OnPitRoad']:
+            if state.onPitRoad == 0:
+                state.enterPits = datetime.now()
+                state.OnPitRoad = 1
+        else:
+            if state.onPitRoad == 1:
+                state.exitPits = datetime.now()
+                state.OnPitRoad = 0
 
     # publish session time and configured telemetry values every minute
     
