@@ -137,7 +137,8 @@ def loop():
 #        data['ExitPit'] = 0
 #        data['StopStart'] = 0
 
-        logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
+        if debug:
+            logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
 
     else:
         if state.sessionId == '':
