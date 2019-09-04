@@ -35,6 +35,7 @@ import irsdk
 import os
 import time
 import json
+import logging
 from google.cloud import firestore
 from datetime import datetime
 
@@ -45,7 +46,7 @@ class State:
     tick = 0
     lap = 0
     lastLaptime = 0
-    fuel = -1
+    fuel = 0
     onPitRoad = -1
     enterPits = 0
     exitPits = 0
@@ -60,7 +61,7 @@ def check_iracing():
         # don't forget to reset all your in State variables
         state.date_time = -1
         state.tick = 0
-        state.fuel = -1
+        state.fuel = 0
         state.lap = -1
         state.lastLaptime = 0
         state.onPitRoad = -1
@@ -105,11 +106,16 @@ def loop():
         lastLaptime = ir['LapLastLapTime']
 
     data = {}
-    if lap != state.lap and lastLaptime != state.LapLastLapTime:
+    if True: #lap != state.lap and lastLaptime != state.LapLastLapTime:
         state.lap = lap
         state.LapLastLapTime = lastLaptime
 
         data['Driver'] = ir['DriverInfo']['DriverUserID']
+        driverIdx = ir['DriverInfo']['DriverCarIdx']
+        teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
+        teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+        collectionName = str(teamName) + str(teamId) + '-' + state.sessionId
+
         data['Laptime'] = state.lastLaptime
         
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
@@ -131,8 +137,8 @@ def loop():
 #        data['ExitPit'] = 0
 #        data['StopStart'] = 0
 
-        if debug:
-            print(state.sessionId + ' lap ' + str(lap) + ': ' + json.dumps(data))
+        logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
+
     else:
         if state.sessionId == '':
             state.sessionId = str(ir['WeekendInfo']['SessionID']) + '#' + str(ir['WeekendInfo']['SubSessionID'])
@@ -180,15 +186,18 @@ if __name__ == '__main__':
 
     if config.has_option('global', 'firebase'):
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['global']['firebase'])
+        if debug:
+            print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
+
+        db = firestore.Client()
     
-    if debug:
-        print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
+    if config.has_option('global', 'logfile'):
+        logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
 
     # initializing ir and state
     ir = irsdk.IRSDK()
     state = State()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
-    db = firestore.Client()
     
 
     try:
