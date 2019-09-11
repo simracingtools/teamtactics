@@ -51,12 +51,13 @@ class State:
     enterPits = 0
     exitPits = 0
     sessionId = ''
+    subSessionId = ''
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
 def check_iracing():        
     
-    if state.ir_connected and not (ir.is_initialized and ir.is_connected):
+    if state.ir_connected and not ir.is_connected:
         state.ir_connected = False
         # don't forget to reset all your in State variables
         state.date_time = -1
@@ -68,10 +69,12 @@ def check_iracing():
         state.enterPits = 0
         state.exitPits = 0
         state.sessionId = ''
+        state.subSessionId = ''
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
         print('irsdk disconnected')
+
     elif not state.ir_connected:
         # Check if a dump file should be used to startup IRSDK
         if config.has_option('global', 'simulate'):
@@ -106,15 +109,15 @@ def loop():
         lastLaptime = ir['LapLastLapTime']
 
     data = {}
-    if True: #lap != state.lap and lastLaptime != state.LapLastLapTime:
+    if lap != state.lap and lastLaptime != state.lastLaptime:
         state.lap = lap
-        state.LapLastLapTime = lastLaptime
+        state.lastLaptime = lastLaptime
 
         data['Driver'] = ir['DriverInfo']['DriverUserID']
         driverIdx = ir['DriverInfo']['DriverCarIdx']
         teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
         teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
-        collectionName = str(teamName) + str(teamId) + '-' + state.sessionId
+        collectionName = str(teamName) + str(teamId) + '-' + state.sessionId + '#' + state.subSessionId
 
         data['Laptime'] = state.lastLaptime
         
@@ -137,12 +140,16 @@ def loop():
 #        data['ExitPit'] = 0
 #        data['StopStart'] = 0
 
-        if debug:
+        #if debug:
             logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
 
     else:
-        if state.sessionId == '':
-            state.sessionId = str(ir['WeekendInfo']['SessionID']) + '#' + str(ir['WeekendInfo']['SubSessionID'])
+        if state.sessionId != str(ir['WeekendInfo']['SessionID']):
+            state.sessionId = str(ir['WeekendInfo']['SessionID'])
+                    
+        if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
+            state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
+            print('SessionId: ' + state.sessionId + '#' + state.subSessionId)
 
         if state.fuel == -1:
             state.fuel = ir['FuelLevel']
@@ -181,6 +188,8 @@ if __name__ == '__main__':
     banner()
     if config.has_option('global', 'debug'):
         debug = config.getboolean('global', 'debug')
+    else:
+        debug = False
     
     if debug:
         print('Debug output enabled')
