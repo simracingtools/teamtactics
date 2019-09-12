@@ -22,8 +22,10 @@ if __name__ == '__main__':
         for lap in range (1, 15):
             data_ref = db.collection('123445#1232324').document(str(lap))
 
+            data['Lap'] = lap
             data['Driver'] = 229120
-            data['Laptime'] = uniform(70.0, 74.0) 
+            laptime = uniform(70.0, 74.0)
+            data['Laptime'] = laptime / 86400
             data['FuelUsed'] = uniform(2.0, 2.2)
             data['FuelLevel'] = data['FuelLevel'] - data['FuelUsed']
             
