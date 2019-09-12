@@ -58,7 +58,7 @@ class State:
 # so we can retrieve some data
 def check_iracing():        
     
-    if state.ir_connected and not ir.is_connected:
+    if state.ir_connected and not (ir.is_initialized and ir.is_connected):
         state.ir_connected = False
         # don't forget to reset all your in State variables
         state.date_time = -1
@@ -109,6 +109,10 @@ def loop():
     lastLaptime = 0
     if ir['LapLastLapTime'] > 0:
         lastLaptime = ir['LapLastLapTime']
+    
+    driverIdx = ir['DriverInfo']['DriverCarIdx']
+    teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
+    collectionName = str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
 
     data = {}
     if lap != state.lap and lastLaptime != state.lastLaptime:
@@ -120,11 +124,9 @@ def loop():
         data['StintLap'] = state.stintLap
         data['Driver'] = ir['DriverInfo']['DriverUserID']
         
-        driverIdx = ir['DriverInfo']['DriverCarIdx']
-        teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
+        
         #teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
-        collectionName = teamId + '@' + state.sessionId + '#' + state.subSessionId
-
+        
         data['Laptime'] = state.lastLaptime
         
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
@@ -148,10 +150,13 @@ def loop():
 
 #        data['ExitPit'] = 0
 #        data['StopStart'] = 0
-        try:
-            db.collection(collectionName).document(lap).set(data)
-        except Exception:
-            print('unable to post data')
+        #try:
+            if iracingId == str(data['Driver']):
+                db.collection(collectionName).document(str(lap)).set(data)
+            else:
+                print('Driver ' + str(data['Driver']) + ' in car')
+        #except Exception:
+        #    print('unable to post data')
 
         #if debug:
             logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
@@ -163,7 +168,7 @@ def loop():
                     
         if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
             state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-            print('SessionId: ' + state.sessionId + '#' + state.subSessionId)
+            print('SessionId: ' + str(teamId) + '@' + state.sessionId + '#' + state.subSessionId)
 
         if state.fuel == -1:
             state.fuel = ir['FuelLevel']
@@ -217,6 +222,9 @@ if __name__ == '__main__':
     
     if config.has_option('global', 'logfile'):
         logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
+
+    iracingId = config['global']['iracingId']
+    print('iRacing ID: ' + str(iracingId))
 
     # initializing ir and state
     ir = irsdk.IRSDK()
