@@ -45,6 +45,7 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
+    stintLap = 0
     lastLaptime = 0
     fuel = 0
     onPitRoad = -1
@@ -64,6 +65,7 @@ def check_iracing():
         state.tick = 0
         state.fuel = 0
         state.lap = -1
+        state.stintLap = 0
         state.lastLaptime = 0
         state.onPitRoad = -1
         state.enterPits = 0
@@ -112,19 +114,26 @@ def loop():
     if lap != state.lap and lastLaptime != state.lastLaptime:
         state.lap = lap
         state.lastLaptime = lastLaptime
+        state.stintLap += 1
 
+        data['Lap'] = lap
+        data['StintLap'] = state.stintLap
         data['Driver'] = ir['DriverInfo']['DriverUserID']
+        
         driverIdx = ir['DriverInfo']['DriverCarIdx']
         teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
-        teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
-        collectionName = str(teamName) + str(teamId) + '-' + state.sessionId + '#' + state.subSessionId
+        #teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+        collectionName = teamId + '@' + state.sessionId + '#' + state.subSessionId
 
         data['Laptime'] = state.lastLaptime
         
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
         data['FuelLevel'] = ir['FuelLevel']
-        
+        data['InPit'] = ir['OnPitRoad']
+        if ir['OnPitRoad']:
+            state.stintLap = 0
+
         if state.enterPits > 0:
             data['PitEnter'] = state.enterPits
             state.enterPits = 0
@@ -139,9 +148,14 @@ def loop():
 
 #        data['ExitPit'] = 0
 #        data['StopStart'] = 0
+        try:
+            db.collection(collectionName).document(lap).set(data)
+        except Exception:
+            print('unable to post data')
 
         #if debug:
             logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
+
 
     else:
         if state.sessionId != str(ir['WeekendInfo']['SessionID']):
