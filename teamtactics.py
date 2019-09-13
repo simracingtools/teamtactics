@@ -17,6 +17,7 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program. If not, see <http://www.gnu.org/licenses/>.
 """
+from distutils.log import info
 
 __author__ = "Robert Bausdorf"
 __contact__ = "rbausdorf@gmail.com"
@@ -27,7 +28,7 @@ __deprecated__ = False
 __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
-__status__ = "Production"
+__status__ = "Beta"
 __version__ = "0.7"
 
 import configparser
@@ -45,6 +46,7 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
+    stintCount = 1
     stintLap = 0
     lastLaptime = 0
     fuel = 0
@@ -65,9 +67,10 @@ def check_iracing():
         state.tick = 0
         state.fuel = 0
         state.lap = -1
+        state.stintCount = 1
         state.stintLap = 0
         state.lastLaptime = 0
-        state.onPitRoad = -1
+        state.onPitRoad = 1
         state.enterPits = 0
         state.exitPits = 0
         state.sessionId = ''
@@ -122,18 +125,20 @@ def loop():
 
         data['Lap'] = lap
         data['StintLap'] = state.stintLap
+        data['StintCount'] = state.stintCount
         data['Driver'] = ir['DriverInfo']['DriverUserID']
         
         
         #teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
         
-        data['Laptime'] = state.lastLaptime
+        data['Laptime'] = state.lastLaptime / 86400
         
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
         data['FuelLevel'] = ir['FuelLevel']
         data['InPit'] = ir['OnPitRoad']
         if ir['OnPitRoad']:
+            state.stintCount = state.stintCount + 1
             state.stintLap = 0
 
         if state.enterPits > 0:
@@ -168,17 +173,27 @@ def loop():
                     
         if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
             state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-            print('SessionId: ' + str(teamId) + '@' + state.sessionId + '#' + state.subSessionId)
+            collectionName = str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
+            print('SessionId: ' + collectionName)
+            info = {}
+            info['Track'] = ir['WeekendInfo']['TrackName']
+            sessionNum = ir['SessionNum']
+            info['SessionLaps'] = ir['Sessions'][sessionNum]['SessionLaps']
+            info['SessionTime'] = ir['Sessions'][sessionNum]['SessionTime'] / 86400
+            db.collection(collectionName).document('Info').set(info)
+
 
         if state.fuel == -1:
             state.fuel = ir['FuelLevel']
 
         if ir['OnPitRoad']:
             if state.onPitRoad == 0:
+                print('Enter pitroad')
                 state.enterPits = datetime.now()
                 state.OnPitRoad = 1
         else:
             if state.onPitRoad == 1:
+                print('Exit pitroad')
                 state.exitPits = datetime.now()
                 state.OnPitRoad = 0
 
