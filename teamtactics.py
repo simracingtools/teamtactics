@@ -39,6 +39,7 @@ import json
 import logging
 from google.cloud import firestore
 from datetime import datetime
+from datetime import timedelta
 
 # this is our State class, with some helpful variables
 class State:
@@ -70,7 +71,7 @@ def check_iracing():
         state.stintCount = 1
         state.stintLap = 0
         state.lastLaptime = 0
-        state.onPitRoad = 1
+        state.onPitRoad = -1
         state.enterPits = 0
         state.exitPits = 0
         state.sessionId = ''
@@ -141,13 +142,13 @@ def loop():
             state.stintCount = state.stintCount + 1
             state.stintLap = 0
 
-        if state.enterPits > 0:
+        if state.enterPits:
             data['PitEnter'] = state.enterPits
             state.enterPits = 0
         else:
             data['PitEnter'] = 0
 
-        if state.exitPits > 0:
+        if state.exitPits:
             data['PitExit'] = state.exitPits
             state.exitPits = 0
         else:
@@ -178,8 +179,10 @@ def loop():
             info = {}
             info['Track'] = ir['WeekendInfo']['TrackName']
             sessionNum = ir['SessionNum']
-            info['SessionLaps'] = ir['Sessions'][sessionNum]['SessionLaps']
-            info['SessionTime'] = ir['Sessions'][sessionNum]['SessionTime'] / 86400
+            print(sessionNum)
+            print(ir['Sessions'])
+            info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
+            #info['SessionTime'] = int(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime']) / 86400
             db.collection(collectionName).document('Info').set(info)
 
 
@@ -189,14 +192,20 @@ def loop():
         if ir['OnPitRoad']:
             if state.onPitRoad == 0:
                 print('Enter pitroad')
-                state.enterPits = datetime.now()
-                state.OnPitRoad = 1
+                state.enterPits = float(ir['SessionTimeOfDay'])-3600
+                state.onPitRoad = 1
+            elif state.onPitRoad == -1:
+                state.onPitRoad = 1
         else:
             if state.onPitRoad == 1:
                 print('Exit pitroad')
-                state.exitPits = datetime.now()
-                state.OnPitRoad = 0
+                state.exitPits = float(ir['SessionTimeOfDay'])-3600
+                state.onPitRoad = 0
+            elif state.onPitRoad == -1:
+                state.onPitRoad = 0
 
+        
+            
     # publish session time and configured telemetry values every minute
     
     # read and publish configured telemetry values every second - but only
