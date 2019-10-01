@@ -29,8 +29,9 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.7"
+__version__ = "0.8"
 
+import sys
 import configparser
 import irsdk
 import os
@@ -56,6 +57,7 @@ class State:
     exitPits = 0
     sessionId = ''
     subSessionId = ''
+    currentDriver = ''
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -76,6 +78,7 @@ def check_iracing():
         state.exitPits = 0
         state.sessionId = ''
         state.subSessionId = ''
+        state.currentDriver = ''
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -96,7 +99,49 @@ def check_iracing():
             # Check need and open serial connection
 
             print('irsdk connected')
-    
+
+def checkDriver(driverIdx):
+    currentDriver = ir['DriverInfo']['Drivers'][driverIdx]['UserName']
+
+    if state.currentDriver != currentDriver:
+        print('Driver: ' + currentDriver)
+        state.currentDriver = currentDriver
+
+def getCollectionName(driverIdx, collectionType):
+    if collectionType == 'test':
+        print('Test mode')
+        car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
+        return str(car) + '@' + ir['WeekendInfo']['TrackName']
+    else:
+        print('Race mode')
+        teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
+        return str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
+
+def getInfoDoc(sessionNum, driverIdx):
+    info = {}
+    info['Track'] = ir['WeekendInfo']['TrackName']
+    info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
+    info['SessionType'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionType']
+    info['TeamName'] = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+
+    return info
+
+def checkPitRoad():
+    if ir['OnPitRoad']:
+        if state.onPitRoad == 0:
+            state.enterPits = float(ir['SessionTimeOfDay'])-3600
+            print('Enter pitroad: ' + str(state.enterPits))
+            state.onPitRoad = 1
+        elif state.onPitRoad == -1:
+            state.onPitRoad = 1
+    else:
+        if state.onPitRoad == 1:
+            state.exitPits = float(ir['SessionTimeOfDay'])-3600
+            print('Exit pitroad: ' + str(state.exitPits))
+            state.onPitRoad = 0
+        elif state.onPitRoad == -1:
+            state.onPitRoad = 0
+
 # our main loop, where we retrieve data
 # and do something useful with it
 def loop():
@@ -115,9 +160,12 @@ def loop():
         lastLaptime = ir['LapLastLapTime']
     
     driverIdx = ir['DriverInfo']['DriverCarIdx']
-    teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
-    collectionName = str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
+    sessionNum = ir['SessionNum']
 
+    collectionName = getCollectionName(driverIdx, collectionType)
+    
+    checkDriver(driverIdx)
+    
     data = {}
     if lap != state.lap and lastLaptime != state.lastLaptime:
         state.lap = lap
@@ -128,16 +176,12 @@ def loop():
         data['StintLap'] = state.stintLap
         data['StintCount'] = state.stintCount
         data['Driver'] = ir['DriverInfo']['DriverUserID']
-        
-        
-        #teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
-        
         data['Laptime'] = state.lastLaptime / 86400
-        
         data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
         data['FuelLevel'] = ir['FuelLevel']
         data['InPit'] = ir['OnPitRoad']
+
         if ir['OnPitRoad']:
             state.stintCount = state.stintCount + 1
             state.stintLap = 0
@@ -154,19 +198,11 @@ def loop():
         else:
             data['PitExit'] = 0
 
-#        data['ExitPit'] = 0
-#        data['StopStart'] = 0
-        #try:
-            if iracingId == str(data['Driver']):
-                db.collection(collectionName).document(str(lap)).set(data)
-            else:
-                print('Driver ' + str(data['Driver']) + ' in car')
-        #except Exception:
-        #    print('unable to post data')
+        if iracingId == str(data['Driver']):
+            db.collection(collectionName).document(str(lap)).set(data)
 
-        #if debug:
+        if debug:
             logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
-
 
     else:
         if state.sessionId != str(ir['WeekendInfo']['SessionID']):
@@ -174,35 +210,14 @@ def loop():
                     
         if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
             state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-            collectionName = str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
+            collectionName = getCollectionName(driverIdx, collectionType)
             print('SessionId: ' + collectionName)
-            info = {}
-            info['Track'] = ir['WeekendInfo']['TrackName']
-            sessionNum = ir['SessionNum']
-            print(sessionNum)
-            print(ir['Sessions'])
-            info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
-            #info['SessionTime'] = int(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime']) / 86400
-            db.collection(collectionName).document('Info').set(info)
-
+            db.collection(collectionName).document('Info').set(getInfoDoc(sessionNum, driverIdx))
 
         if state.fuel == -1:
             state.fuel = ir['FuelLevel']
 
-        if ir['OnPitRoad']:
-            if state.onPitRoad == 0:
-                print('Enter pitroad')
-                state.enterPits = float(ir['SessionTimeOfDay'])-3600
-                state.onPitRoad = 1
-            elif state.onPitRoad == -1:
-                state.onPitRoad = 1
-        else:
-            if state.onPitRoad == 1:
-                print('Exit pitroad')
-                state.exitPits = float(ir['SessionTimeOfDay'])-3600
-                state.onPitRoad = 0
-            elif state.onPitRoad == -1:
-                state.onPitRoad = 0
+        checkPitRoad()
 
         
             
@@ -254,7 +269,9 @@ if __name__ == '__main__':
     ir = irsdk.IRSDK()
     state = State()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
-    
+    collectionType = ''
+    if len(sys.argv) > 1:
+        collectionType = sys.argv[1]
 
     try:
         # infinite loop
