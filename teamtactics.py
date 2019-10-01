@@ -48,7 +48,7 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
-    stintCount = 0
+    stintCount = 1
     stintLap = 0
     lastLaptime = 0
     fuel = 0
@@ -70,7 +70,7 @@ def check_iracing():
         state.tick = 0
         state.fuel = 0
         state.lap = 0
-        state.stintCount = 0
+        state.stintCount = 1
         state.stintLap = 0
         state.lastLaptime = 0
         state.onPitRoad = -1
@@ -109,11 +109,9 @@ def checkDriver(driverIdx):
 
 def getCollectionName(driverIdx, collectionType):
     if collectionType == 'test':
-        print('Test mode')
         car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
         return str(car) + '@' + ir['WeekendInfo']['TrackName']
     else:
-        print('Race mode')
         teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
         return str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
 
@@ -279,6 +277,11 @@ if __name__ == '__main__':
     collectionType = ''
     if len(sys.argv) > 1:
         collectionType = sys.argv[1]
+
+    if collectionType == 'test':
+        print('Test mode')
+    else:
+        print('Race mode')
 
     try:
         # infinite loop
