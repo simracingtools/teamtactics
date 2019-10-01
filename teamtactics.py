@@ -48,7 +48,7 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
-    stintCount = 1
+    stintCount = 0
     stintLap = 0
     lastLaptime = 0
     fuel = 0
@@ -69,8 +69,8 @@ def check_iracing():
         state.date_time = -1
         state.tick = 0
         state.fuel = 0
-        state.lap = -1
-        state.stintCount = 1
+        state.lap = 0
+        state.stintCount = 0
         state.stintLap = 0
         state.lastLaptime = 0
         state.onPitRoad = -1
@@ -121,6 +121,7 @@ def getInfoDoc(sessionNum, driverIdx):
     info = {}
     info['Track'] = ir['WeekendInfo']['TrackName']
     info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
+    info['SessionTime'] = float(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime'][:-4]) / 86400
     info['SessionType'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionType']
     info['TeamName'] = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
 
@@ -164,10 +165,15 @@ def loop():
 
     collectionName = getCollectionName(driverIdx, collectionType)
     
+    # check for driver change
     checkDriver(driverIdx)
-    
+
+    # check for pit enter/exit
+    checkPitRoad()
+
     data = {}
-    if lap != state.lap and lastLaptime != state.lastLaptime:
+    #if lap != state.lap and lastLaptime != state.lastLaptime:
+    if lastLaptime > 0 and lastLaptime != state.lastLaptime:
         state.lap = lap
         state.lastLaptime = lastLaptime
         state.stintLap += 1
@@ -187,13 +193,13 @@ def loop():
             state.stintLap = 0
 
         if state.enterPits:
-            data['PitEnter'] = state.enterPits
+            data['PitEnter'] = state.enterPits / 86400
             state.enterPits = 0
         else:
             data['PitEnter'] = 0
 
         if state.exitPits:
-            data['PitExit'] = state.exitPits
+            data['PitExit'] = state.exitPits / 86400
             state.exitPits = 0
         else:
             data['PitExit'] = 0
@@ -217,7 +223,6 @@ def loop():
         if state.fuel == -1:
             state.fuel = ir['FuelLevel']
 
-        checkPitRoad()
 
         
             
