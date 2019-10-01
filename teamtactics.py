@@ -121,7 +121,9 @@ def getInfoDoc(sessionNum, driverIdx):
     info = {}
     info['Track'] = ir['WeekendInfo']['TrackName']
     info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
-    info['SessionTime'] = float(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime'][:-4]) / 86400
+    info['SessionTime'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionTime']
+    if info['SessionTime'] != 'unlimited':
+        info['SessionTime'] = float(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime'][:-4]) / 86400
     info['SessionType'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionType']
     info['TeamName'] = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
 
