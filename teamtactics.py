@@ -187,6 +187,7 @@ def loop():
         state.fuel = ir['FuelLevel']
         data['FuelLevel'] = ir['FuelLevel']
         data['InPit'] = ir['OnPitRoad']
+        data['TrackTemp'] = ir['TrackTemp']
 
         if ir['OnPitRoad']:
             state.stintCount = state.stintCount + 1
