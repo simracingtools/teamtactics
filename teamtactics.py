@@ -53,8 +53,11 @@ class State:
     lastLaptime = 0
     fuel = 0
     onPitRoad = -1
+    notMoving = -1
     enterPits = 0
     exitPits = 0
+    stopMoving = 0
+    startMoving = 0
     sessionId = ''
     subSessionId = ''
     currentDriver = ''
@@ -74,8 +77,11 @@ def check_iracing():
         state.stintLap = 0
         state.lastLaptime = 0
         state.onPitRoad = -1
+        state.notMoving = -1
         state.enterPits = 0
         state.exitPits = 0
+        state.startMoving = 0
+        state.stopMoving = 0
         state.sessionId = ''
         state.subSessionId = ''
         state.currentDriver = ''
@@ -139,6 +145,16 @@ def checkPitRoad():
             state.onPitRoad = 1
         elif state.onPitRoad == -1:
             state.onPitRoad = 1
+
+        if ir['Speed'] == 0:
+            if state.notMoving != 1:
+                state.notMoving = 1
+                state.stopMoving = float(ir['SessionTimeOfDay'])-3600
+        else:
+            if state.notMoving == 1:
+                state.notMoving = 0
+                state.startMoving = float(ir['SessionTimeOfDay'])-3600
+
     else:
         if state.onPitRoad == 1:
             state.exitPits = float(ir['SessionTimeOfDay'])-3600
@@ -208,6 +224,18 @@ def loop():
             state.exitPits = 0
         else:
             data['PitExit'] = 0
+
+        if state.stopMoving:
+            data['StopMoving'] = state.stopMoving / 86400
+            state.stopMoving = 0
+        else:
+            data['StopMoving'] = 0
+
+        if state.startMoving:
+            data['StartMoving'] = state.startMoving / 86400
+            state.startMoving = 0
+        else:
+            data['StartMoving'] = 0
 
         if iracingId == str(data['Driver']):
             db.collection(collectionName).document(str(lap)).set(data)
