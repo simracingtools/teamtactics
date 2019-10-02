@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.8"
+__version__ = "0.9"
 
 import sys
 import configparser
@@ -110,7 +110,7 @@ def checkDriver(driverIdx):
 def getCollectionName(driverIdx, collectionType):
     if collectionType == 'test':
         car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
-        return str(car) + '@' + ir['WeekendInfo']['TrackName']
+        return iracingId + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName']
     else:
         teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
         return str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
@@ -232,6 +232,11 @@ def loop():
     # read and publish configured telemetry values every second - but only
     # if the value has changed in telemetry
 
+def usage():
+    print("usage:")
+    print("teamtactics test | race")
+    print("exiting ...")
+
 def banner():
     print("=============================")
     print("|   iRacing Team Tactics    |")
@@ -264,12 +269,19 @@ if __name__ == '__main__':
             print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
 
         db = firestore.Client()
-    
+    else:
+        print('option firebase not configured or irtactics.ini not found')
+        sys.exit(1)
+        
     if config.has_option('global', 'logfile'):
         logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
 
-    iracingId = config['global']['iracingId']
-    print('iRacing ID: ' + str(iracingId))
+    if config.has_option('global', 'iracingId'):
+        iracingId = config['global']['iracingId']
+        print('iRacing ID: ' + str(iracingId))
+    else:
+        print('option iRacingId not configured or irtactics.ini not found')
+        sys.exit(1)
 
     # initializing ir and state
     ir = irsdk.IRSDK()
@@ -278,11 +290,17 @@ if __name__ == '__main__':
     collectionType = ''
     if len(sys.argv) > 1:
         collectionType = sys.argv[1]
-
+    else:
+        usage()
+        sys.exit(1)
+        
     if collectionType == 'test':
         print('Test mode')
-    else:
+    elif collectionType == 'race':
         print('Race mode')
+    else:
+        usage()
+        sys.exit(1)
 
     try:
         # infinite loop

@@ -1,1 +1,7 @@
 /irtactics.log
+/*.json
+/__pycache__/
+/build/
+/teamtactics.spec
+/irtactics.ini
+/dist/teamtactics.exe
