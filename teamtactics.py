@@ -127,6 +127,7 @@ def getCollectionName(driverIdx, collectionType):
 
 def getInfoDoc(sessionNum, driverIdx):
     info = {}
+    info['Version'] = __version__
     info['Track'] = ir['WeekendInfo']['TrackName']
     info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
     info['SessionTime'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionTime']
