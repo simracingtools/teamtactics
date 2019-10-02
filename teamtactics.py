@@ -113,6 +113,10 @@ def getCollectionName(driverIdx, collectionType):
         return iracingId + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName']
     else:
         teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
+        if state.sessionId == '0':
+            print('This seems to be an offline session, try restart in test mode')
+            sys.exit(1)
+
         return str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
 
 def getInfoDoc(sessionNum, driverIdx):
@@ -250,8 +254,9 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()    
     try: 
         config.read('irtactics.ini')
-    except Exception:
-        print('unable to read configuration: ' + Exception.__cause__)
+    except Exception as ex:
+        print('unable to read configuration: ' + str(ex))
+        sys.exit(1)
 
     # Print banner an debug output status
     banner()
@@ -268,7 +273,12 @@ if __name__ == '__main__':
         if debug:
             print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
 
-        db = firestore.Client()
+        try:
+            db = firestore.Client()
+        except Exception as ex:
+            print('Unable to connect to Firebase: ' + str(ex))
+            sys.exit(1)
+
     else:
         print('option firebase not configured or irtactics.ini not found')
         sys.exit(1)
