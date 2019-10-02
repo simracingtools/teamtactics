@@ -6,7 +6,9 @@ Fahrers für jede Runde in einer Datenbank (Google Firestore):
 * Tankinhalt
 * Benzinverbrauch in der letzten Runde
 * iRacing-ID des aktuellen Fahrers
-* Zeitstempel für Boxeneinfahrt/Boxenausfahrtausfahrt
+* Zeitstempel für Boxeneinfahrt/Boxenausfahrtausfahrt und Stop/Start der
+  Bewegung in der Box
+* Flags für Boxenservice (Reifen, Tanken, Windshield, Fast Repair)
 * Streckentemperatur
 
 Vorbereitung:

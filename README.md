@@ -17,17 +17,18 @@ data is collected and aggregated into a Google Firestore database:
 
 * LapCompleted
 * LapLastLapTime
-* DriverUserID
+* Driver Customer-ID
 * FuelUsed
 * FuelLevel
 * OnPitRoad
 * TrackTemp
-* SessionTimeOfDay when entering/exiting pits
+* PitSvFlags
+* SessionTimeOfDay when entering/exiting pits and stop/start moving in pits
 
 In addition a stint number and lap number in stint is calculated based to the
 pit entry/exit events.
 
-With this information the teams strategy can be calculated based on near realtime data.
+With this information the team's strategy can be calculated based on near realtime data.
 A client which makes use of this data is subject of another project.
 
 ## Configuration and usage
@@ -61,14 +62,14 @@ To start a test session recording:
 	
 To start a race session recording:
 
-	teamtactics.exe
+	teamtactics.exe race
 
 ## Data collections
 
 All session data is gathered within a Firestore collection. For a test session the
 collection name will be
 
-	<iRacingId>@<car>#<track>
+	<customerId>@<car>#<track>
 	
 , for a race session
 
@@ -76,15 +77,16 @@ collection name will be
 	
 is used.
 
-Each collection contains an 'info' document containing the track name, max. 
-session laps and max. session time. Depending on the event type only one of the latter 
-is relevant.
+Each collection contains an 'info' document containing the track name, team name,
+client version, max. session laps and max. session time. Depending on the event 
+type only one of the latter is relevant.
+
 The telemetry data mentioned above is collected in one document per lap - so document
 '1' contains data for race lap 1.
 
 
-
-# Build
+## Developer info
+### Build
 
 Follow instructions at 
 https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution-doesnt-get-added-to-pyinstaller-build
