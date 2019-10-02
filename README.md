@@ -21,6 +21,7 @@ data is collected and aggregated into a Google Firestore database:
 * FuelUsed
 * FuelLevel
 * OnPitRoad
+* TrackTemp
 * SessionTimeOfDay when entering/exiting pits
 
 In addition a stint number and lap number in stint is calculated based to the
@@ -67,7 +68,7 @@ To start a race session recording:
 All session data is gathered within a Firestore collection. For a test session the
 collection name will be
 
-	<car>@<track>
+	<iRacingId>@<car>#<track>
 	
 , for a race session
 
