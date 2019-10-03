@@ -106,6 +106,15 @@ def check_iracing():
 
             print('irsdk connected')
 
+            collectionName = getCollectionName(collectionType)
+            print('SessionId: ' + collectionName)
+            col_ref = db.collection(collectionName)
+            docs = list(col_ref.stream())
+            if len(docs) > 0:
+                print('Deleting all data in collection ' + collectionName)
+                for doc in docs:
+                    doc.reference.delete()
+
 def checkDriver(driverIdx):
     currentDriver = ir['DriverInfo']['Drivers'][driverIdx]['UserName']
 
@@ -113,8 +122,9 @@ def checkDriver(driverIdx):
         print('Driver: ' + currentDriver)
         state.currentDriver = currentDriver
 
-def getCollectionName(driverIdx, collectionType):
+def getCollectionName(collectionType):
     if collectionType == 'test':
+        driverIdx = ir['DriverInfo']['DriverCarIdx']
         car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
         return iracingId + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName']
     else:
@@ -147,13 +157,15 @@ def checkPitRoad():
         elif state.onPitRoad == -1:
             state.onPitRoad = 1
 
-        if ir['Speed'] == 0:
+        if ir['Speed'] < 0.01:
             if state.notMoving != 1:
                 state.notMoving = 1
+                print('Stop car')
                 state.stopMoving = float(ir['SessionTimeOfDay'])-3600
         else:
             if state.notMoving == 1:
                 state.notMoving = 0
+                print('Start car')
                 state.startMoving = float(ir['SessionTimeOfDay'])-3600
 
     else:
@@ -184,7 +196,7 @@ def loop():
     driverIdx = ir['DriverInfo']['DriverCarIdx']
     sessionNum = ir['SessionNum']
 
-    collectionName = getCollectionName(driverIdx, collectionType)
+    collectionName = getCollectionName(collectionType)
     
     # check for driver change
     checkDriver(driverIdx)
@@ -251,8 +263,7 @@ def loop():
                     
         if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
             state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-            collectionName = getCollectionName(driverIdx, collectionType)
-            print('SessionId: ' + collectionName)
+            collectionName = getCollectionName(collectionType)
             db.collection(collectionName).document('Info').set(getInfoDoc(sessionNum, driverIdx))
 
         if state.fuel == -1:
