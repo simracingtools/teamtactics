@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.9"
+__version__ = "0.95"
 
 import sys
 import configparser
@@ -48,6 +48,10 @@ class State:
     date_time = -1
     tick = 0
     lap = 0
+    sessionType = ''
+    driverIdx = -1
+
+class SyncState:
     stintCount = 1
     stintLap = 0
     lastLaptime = 0
@@ -60,8 +64,42 @@ class State:
     startMoving = 0
     sessionId = ''
     subSessionId = ''
+    sessionNum = 0
     currentDriver = ''
-
+    
+    def fromDict(self, dict):
+        self.stintCount = dict['stintCount']
+        self.stintLap = dict['stintLap']
+        self.lastLaptime = dict['lastLapTime']
+        self.fuel = dict['fuel']
+        self.onPitRoad = dict['onPitRoad']
+        self.enterPits = dict['enterPits']
+        self.exitPits = dict['exitPits']
+        self.stopMoving = dict['stopMoving']
+        self.startMoving = dict['startMoving']
+        self.sessionId = dict['sessionId']
+        self.subSessionId = dict['subSessionId']
+        self.sessionNum = dict['sessionNum']
+        self.currentDriver = dict['currentDriver']
+    
+    def toDict(self):
+        dict = {}
+        dict['stintCount'] = self.stintCount
+        dict['stintLap'] = self.stintLap
+        dict['lastLapTime'] = self.lastLaptime
+        dict['fuel'] = self.fuel
+        dict['onPitRoad'] = self.onPitRoad
+        dict['enterPits'] = self.enterPits
+        dict['exitPits'] = self.exitPits
+        dict['stopMoving'] = self.stopMoving
+        dict['startMoving'] = self.startMoving
+        dict['sessionId'] = self.sessionId
+        dict['subSessionId'] = self.subSessionId
+        dict['sessionNum'] = self.sessionNum
+        dict['currentDriver'] = self.currentDriver
+        
+        return dict
+        
 # here we check if we are connected to iracing
 # so we can retrieve some data
 def check_iracing():        
@@ -73,18 +111,22 @@ def check_iracing():
         state.tick = 0
         state.fuel = 0
         state.lap = 0
-        state.stintCount = 1
-        state.stintLap = 0
-        state.lastLaptime = 0
-        state.onPitRoad = -1
-        state.notMoving = -1
-        state.enterPits = 0
-        state.exitPits = 0
-        state.startMoving = 0
-        state.stopMoving = 0
-        state.sessionId = ''
-        state.subSessionId = ''
-        state.currentDriver = ''
+        state.sessionType = ''
+        state.driverIdx = -1
+
+        syncState.stintCount = 1
+        syncState.stintLap = 0
+        syncState.lastLaptime = 0
+        syncState.onPitRoad = -1
+        syncState.notMoving = -1
+        syncState.enterPits = 0
+        syncState.exitPits = 0
+        syncState.startMoving = 0
+        syncState.stopMoving = 0
+        syncState.sessionId = ''
+        syncState.subSessionId = ''
+        syncState.sessionNum = 0
+        syncState.currentDriver = ''
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -106,75 +148,131 @@ def check_iracing():
 
             print('irsdk connected')
 
-            collectionName = getCollectionName(collectionType)
-            print('SessionId: ' + collectionName)
+            checkSessionChange()
+
+            collectionName = getCollectionName()
             col_ref = db.collection(collectionName)
-            docs = list(col_ref.stream())
-            if len(docs) > 0:
-                print('Deleting all data in collection ' + collectionName)
-                for doc in docs:
-                    doc.reference.delete()
+            if state.sessionType == 'single':
+                try:
+                    docs = list(col_ref.stream())
+                    if len(docs) > 0:
+                        print('Single session, deleting all data in collection ' + collectionName)
+                        #for doc in docs:
+                        #    doc.reference.delete()
+                    
+                    col_ref.document('Info').set(getInfoDoc())
+                except Exception as ex:
+                    print('Firestore error: ' + str(ex))
 
-def checkDriver(driverIdx):
-    currentDriver = ir['DriverInfo']['Drivers'][driverIdx]['UserName']
+def checkDriver():
+    currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
-    if state.currentDriver != currentDriver:
+    if syncState.currentDriver != currentDriver:
         print('Driver: ' + currentDriver)
-        state.currentDriver = currentDriver
+        syncState.currentDriver = currentDriver
 
-def getCollectionName(collectionType):
-    if collectionType == 'test':
-        driverIdx = ir['DriverInfo']['DriverCarIdx']
-        car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
-        return iracingId + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName']
+        collectionName = getCollectionName()
+        doc = db.collection(collectionName).document('State').get()
+        
+        if doc.exists:
+            print('Sync state on driver change')
+            syncState.fromDict(doc.to_dict())
+            if debug:
+                print('State: ' + str(syncState.toDict()))
+        else:
+            print('No state in ' + collectionName)
+
+
+def getCollectionName():
+    teamName = ir['DriverInfo']['Drivers'][state.driverIdx]['TeamName']
+
+    if state.sessionType == 'single':
+        car = ir['DriverInfo']['Drivers'][state.driverIdx]['CarPath']
+        return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(syncState.sessionNum)
     else:
-        teamId = ir['DriverInfo']['Drivers'][driverIdx]['TeamID']
-        if state.sessionId == '0':
-            print('This seems to be an offline session, try restart in test mode')
-            sys.exit(1)
+        return str(teamName) + '@' + state.sessionId + '#' + state.subSessionId + '#' + str(syncState.sessionNum)
 
-        return str(teamId) + '@' + state.sessionId + '#' + state.subSessionId
-
-def getInfoDoc(sessionNum, driverIdx):
+def getInfoDoc():
     info = {}
     info['Version'] = __version__
     info['Track'] = ir['WeekendInfo']['TrackName']
-    info['SessionLaps'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionLaps']
-    info['SessionTime'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionTime']
+    info['SessionLaps'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionLaps']
+    info['SessionTime'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionTime']
     if info['SessionTime'] != 'unlimited':
-        info['SessionTime'] = float(ir['SessionInfo']['Sessions'][sessionNum]['SessionTime'][:-4]) / 86400
-    info['SessionType'] = ir['SessionInfo']['Sessions'][sessionNum]['SessionType']
-    info['TeamName'] = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+        info['SessionTime'] = float(ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionTime'][:-4]) / 86400
+    info['SessionType'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionType']
+    info['TeamName'] = ir['DriverInfo']['Drivers'][state.driverIdx]['TeamName']
 
     return info
 
 def checkPitRoad():
     if ir['OnPitRoad']:
-        if state.onPitRoad == 0:
-            state.enterPits = float(ir['SessionTimeOfDay'])-3600
+        if syncState.onPitRoad == 0:
+            syncState.enterPits = float(ir['SessionTimeOfDay'])-3600
             print('Enter pitroad: ' + str(state.enterPits))
-            state.onPitRoad = 1
-        elif state.onPitRoad == -1:
-            state.onPitRoad = 1
+            syncState.onPitRoad = 1
+        elif syncState.onPitRoad == -1:
+            syncState.onPitRoad = 1
 
         if ir['Speed'] < 0.01:
-            if state.notMoving != 1:
-                state.notMoving = 1
+            if syncState.notMoving != 1:
+                syncState.notMoving = 1
                 print('Stop car')
-                state.stopMoving = float(ir['SessionTimeOfDay'])-3600
+                # only recond the first stop moving event
+                if syncState.stopMoving == 0:
+                    syncState.stopMoving = float(ir['SessionTimeOfDay'])-3600
         else:
-            if state.notMoving == 1:
-                state.notMoving = 0
+            if syncState.notMoving == 1:
+                syncState.notMoving = 0
                 print('Start car')
-                state.startMoving = float(ir['SessionTimeOfDay'])-3600
+                # different to stopping, record the last start movment event 
+                # in pitlane
+                syncState.startMoving = float(ir['SessionTimeOfDay'])-3600
 
     else:
-        if state.onPitRoad == 1:
-            state.exitPits = float(ir['SessionTimeOfDay'])-3600
+        if syncState.onPitRoad == 1:
+            syncState.exitPits = float(ir['SessionTimeOfDay'])-3600
             print('Exit pitroad: ' + str(state.exitPits))
-            state.onPitRoad = 0
-        elif state.onPitRoad == -1:
-            state.onPitRoad = 0
+            syncState.onPitRoad = 0
+        elif syncState.onPitRoad == -1:
+            syncState.onPitRoad = 0
+
+def checkSessionChange():
+    sessionChange = False
+    
+    if state.driverIdx == -1:
+        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
+
+    if syncState.sessionId != str(ir['WeekendInfo']['SessionID']):
+        syncState.sessionId = str(ir['WeekendInfo']['SessionID'])
+        sessionChange = True
+                
+    if syncState.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
+        syncState.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
+        sessionChange = True
+
+    if syncState.sessionNum != ir['SessionNum']:
+        syncState.sessionNum = ir['SessionNum']
+        sessionChange = True
+
+    if sessionChange:
+        if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
+            state.sessionType = 'single'
+        else:
+            state.sessionType = 'team'
+
+        collectionName = getCollectionName()
+        print('SessionType: ' + state.sessionType)
+        print('SessionId  : ' + collectionName)
+        infodoc = getInfoDoc()
+        if debug:
+            print('infodoc: ' + str(infodoc))
+        
+        try:
+            col_ref = db.collection(collectionName).document('Info')
+            col_ref.set(infodoc)
+        except Exception as ex:
+            print('Unable to write info document: ' + str(ex))
 
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -193,81 +291,100 @@ def loop():
     if ir['LapLastLapTime'] > 0:
         lastLaptime = ir['LapLastLapTime']
     
-    driverIdx = ir['DriverInfo']['DriverCarIdx']
-    sessionNum = ir['SessionNum']
 
-    collectionName = getCollectionName(collectionType)
+    collectionName = getCollectionName()
+    col_ref = db.collection(collectionName)
     
     # check for driver change
-    checkDriver(driverIdx)
+    checkDriver()
 
     # check for pit enter/exit
     checkPitRoad()
 
     data = {}
     #if lap != state.lap and lastLaptime != state.lastLaptime:
-    if lastLaptime > 0 and lastLaptime != state.lastLaptime:
+    if lastLaptime > 0 and lastLaptime != syncState.lastLaptime:
         state.lap = lap
-        state.lastLaptime = lastLaptime
-        state.stintLap += 1
+        syncState.lastLaptime = lastLaptime
+        syncState.stintLap += 1
 
         data['Lap'] = lap
-        data['StintLap'] = state.stintLap
-        data['StintCount'] = state.stintCount
-        data['Driver'] = ir['DriverInfo']['DriverUserID']
-        data['Laptime'] = state.lastLaptime / 86400
-        data['FuelUsed'] = state.fuel - ir['FuelLevel']
-        state.fuel = ir['FuelLevel']
+        data['StintLap'] = syncState.stintLap
+        data['StintCount'] = syncState.stintCount
+        data['Driver'] = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
+        data['Laptime'] = syncState.lastLaptime / 86400
+        data['FuelUsed'] = syncState.fuel - ir['FuelLevel']
+        syncState.fuel = ir['FuelLevel']
         data['FuelLevel'] = ir['FuelLevel']
         data['InPit'] = ir['OnPitRoad']
         data['TrackTemp'] = ir['TrackTemp']
         data['PitServiceFlags'] = ir['PitSvFlags']
+        data['SessionTime'] = ir['SessionTime'] / 86400
+        date['PitRepair'] = ir['PitRepairLeft']
+        date['PitOptRepair'] = ir['PitOptRepairLeft']
+        date['TowingTime'] = ir['PlayerCarTowTime']
 
         if ir['OnPitRoad']:
-            state.stintCount = state.stintCount + 1
-            state.stintLap = 0
+            syncState.stintCount = syncState.stintCount + 1
+            syncState.stintLap = 0
 
-        if state.enterPits:
-            data['PitEnter'] = state.enterPits / 86400
-            state.enterPits = 0
+        if syncState.enterPits:
+            data['PitEnter'] = syncState.enterPits / 86400
+            syncState.enterPits = 0
         else:
             data['PitEnter'] = 0
 
-        if state.exitPits:
-            data['PitExit'] = state.exitPits / 86400
-            state.exitPits = 0
+        if syncState.exitPits:
+            data['PitExit'] = syncState.exitPits / 86400
+            syncState.exitPits = 0
         else:
             data['PitExit'] = 0
 
-        if state.stopMoving:
-            data['StopMoving'] = state.stopMoving / 86400
-            state.stopMoving = 0
+        if syncState.stopMoving:
+            data['StopMoving'] = syncState.stopMoving / 86400
+            syncState.stopMoving = 0
         else:
             data['StopMoving'] = 0
 
-        if state.startMoving:
-            data['StartMoving'] = state.startMoving / 86400
-            state.startMoving = 0
+        if syncState.startMoving:
+            data['StartMoving'] = syncState.startMoving / 86400
+            syncState.startMoving = 0
         else:
             data['StartMoving'] = 0
 
         if iracingId == str(data['Driver']):
-            db.collection(collectionName).document(str(lap)).set(data)
+            try:
+                col_ref.document(str(lap)).set(data)
+            except Exception as ex:
+                print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
+            try:
+                col_ref.document('State').set(dict(syncState))
+            except Exception as ex:
+                print('Unable to write state document: ' + str(ex))
 
         if debug:
             logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
 
     else:
-        if state.sessionId != str(ir['WeekendInfo']['SessionID']):
-            state.sessionId = str(ir['WeekendInfo']['SessionID'])
-                    
-        if state.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
-            state.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-            collectionName = getCollectionName(collectionType)
-            db.collection(collectionName).document('Info').set(getInfoDoc(sessionNum, driverIdx))
+        checkSessionChange()
 
-        if state.fuel == -1:
-            state.fuel = ir['FuelLevel']
+         
+        try:
+            doc = col_ref.document('State').get()
+            
+            if doc.exists:
+                if debug:
+                    data = doc.to_dict()
+                    print('State: ' + str(data))
+            else:
+                print('No state document found - providing it')
+                col_ref.document('State').set(syncState.toDict())
+
+        except Exception as ex:
+            print('Unable to write state document: ' + str(ex))
+
+        if syncState.fuel == -1:
+            syncState.fuel = ir['FuelLevel']
 
 
         
@@ -309,6 +426,11 @@ if __name__ == '__main__':
     if debug:
         print('Debug output enabled')
 
+    if config.has_option('global', 'proxy'):
+        proxyUrl = str(config['global']['proxy'])
+        os.environ['http_proxy'] = proxyUrl
+        os.environ['https_proxy'] = proxyUrl
+
     if config.has_option('global', 'firebase'):
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['global']['firebase'])
         if debug:
@@ -337,21 +459,8 @@ if __name__ == '__main__':
     # initializing ir and state
     ir = irsdk.IRSDK()
     state = State()
+    syncState = SyncState()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
-    collectionType = ''
-    if len(sys.argv) > 1:
-        collectionType = sys.argv[1]
-    else:
-        usage()
-        sys.exit(1)
-        
-    if collectionType == 'test':
-        print('Test mode')
-    elif collectionType == 'race':
-        print('Race mode')
-    else:
-        usage()
-        sys.exit(1)
 
     try:
         # infinite loop
@@ -366,7 +475,7 @@ if __name__ == '__main__':
             # sleep for 1 second
             # maximum you can use is 1/60
             # cause iracing update data with 60 fps
-            time.sleep(1)
+            time.sleep(0.5)
     except KeyboardInterrupt:
         # press ctrl+c to exit
         print('exiting')
