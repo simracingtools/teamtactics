@@ -157,8 +157,8 @@ def check_iracing():
                     docs = list(col_ref.stream())
                     if len(docs) > 0:
                         print('Single session, deleting all data in collection ' + collectionName)
-                        #for doc in docs:
-                        #    doc.reference.delete()
+                        for doc in docs:
+                            doc.reference.delete()
                     
                     col_ref.document('Info').set(getInfoDoc())
                 except Exception as ex:
@@ -313,7 +313,7 @@ def loop():
         data['Lap'] = lap
         data['StintLap'] = syncState.stintLap
         data['StintCount'] = syncState.stintCount
-        data['Driver'] = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
+        data['Driver'] = syncState.currentDriver
         data['Laptime'] = syncState.lastLaptime / 86400
         data['FuelUsed'] = syncState.fuel - ir['FuelLevel']
         syncState.fuel = ir['FuelLevel']
@@ -379,7 +379,9 @@ def loop():
                     data = doc.to_dict()
                     print('State: ' + str(data))
             else:
-                print('No state document found - providing it')
+                if debug:
+                    print('No state document found - providing it')
+
                 col_ref.document('State').set(syncState.toDict())
 
         except Exception as ex:
