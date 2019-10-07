@@ -171,16 +171,18 @@ def checkDriver():
         print('Driver: ' + currentDriver)
         syncState.currentDriver = currentDriver
 
-        collectionName = getCollectionName()
-        doc = db.collection(collectionName).document('State').get()
-        
-        if doc.exists:
-            print('Sync state on driver change')
-            syncState.fromDict(doc.to_dict())
-            if debug:
-                print('State: ' + str(syncState.toDict()))
-        else:
-            print('No state in ' + collectionName)
+        # sync state on self driving
+        if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
+            collectionName = getCollectionName()
+            doc = db.collection(collectionName).document('State').get()
+            
+            if doc.exists:
+                print('Sync state on driver change')
+                syncState.fromDict(doc.to_dict())
+                if debug:
+                    print('State: ' + str(syncState.toDict()))
+            else:
+                print('No state in ' + collectionName)
 
 
 def getCollectionName():
@@ -352,7 +354,7 @@ def loop():
         else:
             data['StartMoving'] = 0
 
-        if iracingId == str(data['Driver']):
+        if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
             try:
                 col_ref.document(str(lap)).set(data)
             except Exception as ex:
