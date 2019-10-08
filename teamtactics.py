@@ -192,7 +192,7 @@ def getCollectionName():
         car = ir['DriverInfo']['Drivers'][state.driverIdx]['CarPath']
         return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(syncState.sessionNum)
     else:
-        return str(teamName) + '@' + state.sessionId + '#' + state.subSessionId + '#' + str(syncState.sessionNum)
+        return str(teamName) + '@' + syncState.sessionId + '#' + syncState.subSessionId + '#' + str(syncState.sessionNum)
 
 def getInfoDoc():
     info = {}
@@ -211,7 +211,7 @@ def checkPitRoad():
     if ir['OnPitRoad']:
         if syncState.onPitRoad == 0:
             syncState.enterPits = float(ir['SessionTimeOfDay'])-3600
-            print('Enter pitroad: ' + str(state.enterPits))
+            print('Enter pitroad: ' + str(syncState.enterPits))
             syncState.onPitRoad = 1
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 1
@@ -234,7 +234,7 @@ def checkPitRoad():
     else:
         if syncState.onPitRoad == 1:
             syncState.exitPits = float(ir['SessionTimeOfDay'])-3600
-            print('Exit pitroad: ' + str(state.exitPits))
+            print('Exit pitroad: ' + str(syncState.exitPits))
             syncState.onPitRoad = 0
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 0
@@ -322,9 +322,9 @@ def loop():
         data['TrackTemp'] = ir['TrackTemp']
         data['PitServiceFlags'] = ir['PitSvFlags']
         data['SessionTime'] = ir['SessionTime'] / 86400
-        date['PitRepair'] = ir['PitRepairLeft']
-        date['PitOptRepair'] = ir['PitOptRepairLeft']
-        date['TowingTime'] = ir['PlayerCarTowTime']
+        data['PitRepair'] = ir['PitRepairLeft']
+        data['PitOptRepair'] = ir['PitOptRepairLeft']
+        data['TowingTime'] = ir['PlayerCarTowTime']
 
         if ir['OnPitRoad']:
             syncState.stintCount = syncState.stintCount + 1
@@ -360,7 +360,7 @@ def loop():
             except Exception as ex:
                 print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
             try:
-                col_ref.document('State').set(dict(syncState))
+                col_ref.document('State').set(syncState.toDict())
             except Exception as ex:
                 print('Unable to write state document: ' + str(ex))
 
@@ -406,7 +406,7 @@ def usage():
 def banner():
     print("=============================")
     print("|   iRacing Team Tactics    |")
-    print("|           " + str(__version__) + "             |")
+    print("|           " + str(__version__) + "            |")
     print("=============================")
 
 
