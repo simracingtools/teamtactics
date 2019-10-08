@@ -23,6 +23,10 @@ data is collected and aggregated into a Google Firestore database:
 * OnPitRoad
 * TrackTemp
 * PitSvFlags
+* SessionTime
+* PlayerCarTowTime
+* PitRepairLeft
+* PitOptRepairLeft
 * SessionTimeOfDay when entering/exiting pits and stop/start moving in pits
 
 In addition a stint number and lap number in stint is calculated based to the
@@ -44,6 +48,10 @@ A client which makes use of this data is subject of another project.
 	# Each team member has to configure its own iRacing ID here
 	iracingId = <your iRacingId>
 	
+	# Proxy configuration. The given URL will be used as Proxy on both http and 
+	# https protocol
+	;proxy = <Proxy URL>
+
 	## The following options are for development/debugging only. 
 	# Generates additional debug output. Comment out or set to yes/True to enable
 	;debug = yes
@@ -56,30 +64,31 @@ A client which makes use of this data is subject of another project.
 	# command 'irsdk --dump data.dmp'
 	;simulate = data/monzasunset.dump
 
-To start a test session recording:
+To start a session recording:
 
-	teamtactics.exe test
+	teamtactics.exe
 	
-To start a race session recording:
-
-	teamtactics.exe race
-
 ## Data collections
 
-All session data is gathered within a Firestore collection. For a test session the
+All session data is gathered within a Firestore collection. For a single session the
 collection name will be
 
-	<customerId>@<car>#<track>
+	<UserName>@<car>#<track>#<SessionNumber>
 	
-, for a race session
+, for a team session
 
-	<teamId>@<sessionId>#<subsessionId>
+	<teamName>@<sessionId>#<subsessionId>#<sessionNumber>
 	
 is used.
 
 Each collection contains an 'info' document containing the track name, team name,
 client version, max. session laps and max. session time. Depending on the event 
 type only one of the latter is relevant.
+
+Each collection also maintains a 'state' document containing the stint number,
+stint laps, timestamps for pit lane entry/exit and start/stop of car movement,
+Towing and Repair times and the session id's. This information is used to 
+synchronize the teamtactics data among all team members.
 
 The telemetry data mentioned above is collected in one document per lap - so document
 '1' contains data for race lap 1.
@@ -93,4 +102,4 @@ https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution
 
 Run
 
-    pyinstaller -F teamtactics.py
+    pyinstaller --clean -F teamtactics.py
