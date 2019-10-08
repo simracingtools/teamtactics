@@ -66,6 +66,9 @@ class SyncState:
     subSessionId = ''
     sessionNum = 0
     currentDriver = ''
+    towingTime = 0
+    repairTime = 0
+    optRepairTime = 0
     
     def fromDict(self, dict):
         self.stintCount = dict['stintCount']
@@ -81,6 +84,9 @@ class SyncState:
         self.subSessionId = dict['subSessionId']
         self.sessionNum = dict['sessionNum']
         self.currentDriver = dict['currentDriver']
+        self.towingTime = dict['towingTime']
+        self.repairTime = dict['repairTime']
+        self.optRepairTime = dict['optRepairTime'] 
     
     def toDict(self):
         dict = {}
@@ -97,7 +103,10 @@ class SyncState:
         dict['subSessionId'] = self.subSessionId
         dict['sessionNum'] = self.sessionNum
         dict['currentDriver'] = self.currentDriver
-        
+        dict['optRepairTime'] = self.optRepairTime
+        dict['repairTime'] = self.repairTime
+        dict['towingTime'] = self.towingTime
+
         return dict
         
 # here we check if we are connected to iracing
@@ -127,6 +136,9 @@ def check_iracing():
         syncState.subSessionId = ''
         syncState.sessionNum = 0
         syncState.currentDriver = ''
+        syncState.towingTime = 0
+        syncState.repairTime = 0
+        syncState.optRepairTime = 0
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -216,7 +228,7 @@ def checkPitRoad():
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 1
 
-        if ir['Speed'] < 0.01:
+        if ir['Speed'] < 0.1:
             if syncState.notMoving != 1:
                 syncState.notMoving = 1
                 print('Stop car')
@@ -231,6 +243,14 @@ def checkPitRoad():
                 # in pitlane
                 syncState.startMoving = float(ir['SessionTimeOfDay'])-3600
 
+        if syncState.repairTime == 0 and ir['PitRepairLeft'] > 0:
+            print('repair: ' + str(ir['PitRepairLeft']))
+            syncState.repairTime = ir['PitRepairLeft']
+        
+        if syncState.optRepairTime == 0 and ir['PitOptRepairLeft'] > 0:
+            print('opt repair: ' + str(ir['PitOptRepairLeft']))
+            syncState.optRepairTime = ir['PitOptRepairLeft']
+
     else:
         if syncState.onPitRoad == 1:
             syncState.exitPits = float(ir['SessionTimeOfDay'])-3600
@@ -238,6 +258,11 @@ def checkPitRoad():
             syncState.onPitRoad = 0
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 0
+
+        if syncState.towingTime == 0 and ir['PlayerCarTowTime'] > 0:
+            print('towing: ' + str(ir['PlayerCarTowTime']))
+            syncState.towingTime = ir['PlayerCarTowTime']
+
 
 def checkSessionChange():
     sessionChange = False
@@ -322,9 +347,6 @@ def loop():
         data['TrackTemp'] = ir['TrackTemp']
         data['PitServiceFlags'] = ir['PitSvFlags']
         data['SessionTime'] = ir['SessionTime'] / 86400
-        data['PitRepair'] = ir['PitRepairLeft']
-        data['PitOptRepair'] = ir['PitOptRepairLeft']
-        data['TowingTime'] = ir['PlayerCarTowTime']
 
         if ir['OnPitRoad']:
             syncState.stintCount = syncState.stintCount + 1
@@ -353,6 +375,24 @@ def loop():
             syncState.startMoving = 0
         else:
             data['StartMoving'] = 0
+
+        if syncState.repairTime > 0:
+            data['PitRepair'] = syncState.repairTime / 86400
+            syncState.repairTime = 0
+        else:
+            data['PitRepair'] = 0
+        
+        if syncState.optRepairTime > 0:
+            data['PitOptRepair'] = syncState.optRepairTime / 86400
+            syncState.optRepairTime = 0
+        else:
+            data['PitOptRepair'] = 0
+
+        if syncState.towingTime > 0:
+            data['TowingTime'] = syncState.towingTime / 86400
+            syncState.towingTime = 0
+        else:
+            data['TowingTime'] = 0
 
         if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
             try:
@@ -397,11 +437,6 @@ def loop():
     
     # read and publish configured telemetry values every second - but only
     # if the value has changed in telemetry
-
-def usage():
-    print("usage:")
-    print("teamtactics test | race")
-    print("exiting ...")
 
 def banner():
     print("=============================")
