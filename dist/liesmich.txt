@@ -1,3 +1,5 @@
+Version 0.95
+
 Teamtactics sammelt die folgenden Telemetriedaten des jeweils im Auto sitzenden
 Fahrers für jede Runde in einer Datenbank (Google Firestore):
 
@@ -10,6 +12,8 @@ Fahrers für jede Runde in einer Datenbank (Google Firestore):
   Bewegung in der Box
 * Flags für Boxenservice (Reifen, Tanken, Windshield, Fast Repair)
 * Streckentemperatur
+* Abgelaufene Renndauer
+* Zeiten für Towing, required and optional Repairs
 
 Vorbereitung:
 
@@ -32,12 +36,5 @@ geschickt, sollten die Zeilen lauten:
 firebase = tactics-TeamAcme.json
 iracingId = 987654
 
-Wenn Du eine Test-Session fahren willst, starte das Programm mit dem Parameter
-"test":
-
-teamtactics.exe test
-
-Wenn Ihr ein Team-Rennen fahrt, muss jeder Team-Member das Programm mit dem 
-Parameter "race" starten:
-
-teamtactics.exe race
+Nach dem Start erkennt das Programm selbstständig, ob Ihr allein oder im Team
+unterwegs seid. Der bisher notwendige Aufrufparameter entfällt.
