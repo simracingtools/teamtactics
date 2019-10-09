@@ -231,17 +231,18 @@ def checkPitRoad():
         if ir['Speed'] < 0.1:
             if syncState.notMoving != 1:
                 syncState.notMoving = 1
-                print('Stop car')
                 # only recond the first stop moving event
                 if syncState.stopMoving == 0:
                     syncState.stopMoving = float(ir['SessionTimeOfDay'])-3600
+                    print('Stop car: ' + str(syncState.stopMoving))
+                    
         else:
             if syncState.notMoving == 1:
                 syncState.notMoving = 0
-                print('Start car')
                 # different to stopping, record the last start movment event 
                 # in pitlane
                 syncState.startMoving = float(ir['SessionTimeOfDay'])-3600
+                print('Start car: ' + str(syncState.startMoving))
 
         if syncState.repairTime == 0 and ir['PitRepairLeft'] > 0:
             print('repair: ' + str(ir['PitRepairLeft']))
