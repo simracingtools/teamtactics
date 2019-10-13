@@ -191,6 +191,8 @@ def checkDriver():
             if doc.exists:
                 print('Sync state on driver change')
                 syncState.fromDict(doc.to_dict())
+                # re-set current driver
+                syncState.currentDriver = currentDriver
                 if debug:
                     print('State: ' + str(syncState.toDict()))
             else:
