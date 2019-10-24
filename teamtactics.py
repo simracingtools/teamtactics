@@ -275,14 +275,17 @@ def checkSessionChange():
 
     if syncState.sessionId != str(ir['WeekendInfo']['SessionID']):
         syncState.sessionId = str(ir['WeekendInfo']['SessionID'])
+        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
         sessionChange = True
                 
     if syncState.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
         syncState.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
+        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
         sessionChange = True
 
     if syncState.sessionNum != ir['SessionNum']:
         syncState.sessionNum = ir['SessionNum']
+        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
         sessionChange = True
 
     if sessionChange:
