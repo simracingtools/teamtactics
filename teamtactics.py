@@ -230,22 +230,6 @@ def checkPitRoad():
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 1
 
-        if ir['Speed'] < 0.1:
-            if syncState.notMoving != 1:
-                syncState.notMoving = 1
-                # only recond the first stop moving event
-                if syncState.stopMoving == 0:
-                    syncState.stopMoving = float(ir['SessionTimeOfDay'])-3600
-                    print('Stop car: ' + str(syncState.stopMoving))
-                    
-        else:
-            if syncState.notMoving == 1:
-                syncState.notMoving = 0
-                # different to stopping, record the last start movment event 
-                # in pitlane
-                syncState.startMoving = float(ir['SessionTimeOfDay'])-3600
-                print('Start car: ' + str(syncState.startMoving))
-
         if syncState.repairTime == 0 and ir['PitRepairLeft'] > 0:
             print('repair: ' + str(ir['PitRepairLeft']))
             syncState.repairTime = ir['PitRepairLeft']
@@ -254,7 +238,31 @@ def checkPitRoad():
             print('opt repair: ' + str(ir['PitOptRepairLeft']))
             syncState.optRepairTime = ir['PitOptRepairLeft']
 
-    else:
+        if ir['Speed'] < 1:
+            if syncState.notMoving != 1:
+                syncState.notMoving = 1
+                # only recond the first stop moving event
+                if syncState.stopMoving == 0:
+                    syncState.stopMoving = float(ir['SessionTimeOfDay'])-3600
+                    print('Stop car: ' + str(syncState.stopMoving))
+                    # Write most recent state info when stopping because of
+                    # possible driver change
+                    if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
+                        try:
+                            col_ref.document('State').set(syncState.toDict())
+                            print(syncState.toDict())
+                        except Exception as ex:
+                            print('Unable to write state document: ' + str(ex))
+
+        else:
+            if syncState.notMoving == 1:
+                syncState.notMoving = 0
+                # different to stopping, record the last start movment event 
+                # in pitlane
+                syncState.startMoving = float(ir['SessionTimeOfDay'])-3600
+                print('Start car: ' + str(syncState.startMoving))
+
+    elif syncState.notMoving == 0:
         if syncState.onPitRoad == 1:
             syncState.exitPits = float(ir['SessionTimeOfDay'])-3600
             print('Exit pitroad: ' + str(syncState.exitPits))
@@ -265,7 +273,8 @@ def checkPitRoad():
         if syncState.towingTime == 0 and ir['PlayerCarTowTime'] > 0:
             print('towing: ' + str(ir['PlayerCarTowTime']))
             syncState.towingTime = ir['PlayerCarTowTime']
-
+    else:
+        print('Skip not on pit road while not moving - possible driver change')
 
 def checkSessionChange():
     sessionChange = False
@@ -323,7 +332,8 @@ def loop():
     lastLaptime = 0
     if ir['LapLastLapTime'] > 0:
         lastLaptime = ir['LapLastLapTime']
-    
+    else:
+        print('no last laptime')
 
     collectionName = getCollectionName()
     col_ref = db.collection(collectionName)
