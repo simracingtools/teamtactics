@@ -274,6 +274,8 @@ def checkPitRoad():
 
     if syncState.towingTime == 0 and ir['PlayerCarTowTime'] > 0:
         print('towing: ' + str(ir['PlayerCarTowTime']))
+        syncState.stintCount = syncState.stintCount + 1
+        syncState.stintLap = 0
         syncState.towingTime = ir['PlayerCarTowTime']
 
 def checkSessionChange():
