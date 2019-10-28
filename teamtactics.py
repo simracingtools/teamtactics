@@ -269,12 +269,12 @@ def checkPitRoad():
             syncState.onPitRoad = 0
         elif syncState.onPitRoad == -1:
             syncState.onPitRoad = 0
-
-        if syncState.towingTime == 0 and ir['PlayerCarTowTime'] > 0:
-            print('towing: ' + str(ir['PlayerCarTowTime']))
-            syncState.towingTime = ir['PlayerCarTowTime']
     else:
         print('Skip not on pit road while not moving - possible driver change')
+
+    if syncState.towingTime == 0 and ir['PlayerCarTowTime'] > 0:
+        print('towing: ' + str(ir['PlayerCarTowTime']))
+        syncState.towingTime = ir['PlayerCarTowTime']
 
 def checkSessionChange():
     sessionChange = False
@@ -527,7 +527,7 @@ if __name__ == '__main__':
             if state.ir_connected:
                 loop()
 
-            # sleep for 1 second
+            # sleep for half a second
             # maximum you can use is 1/60
             # cause iracing update data with 60 fps
             time.sleep(0.5)
