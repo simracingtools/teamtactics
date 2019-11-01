@@ -30,7 +30,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.8"
+__version__ = "0.85"
 
 import sys
 import configparser
@@ -46,53 +46,27 @@ from datetime import timedelta
 # this is our State class, with some helpful variables
 class State:
     ir_connected = False
-    date_time = -1
     tick = 0
     lap = 0
+    eventCount = 0
     sessionId = -1
     subSessionId = -1
     sessionNum = -1
 
-class TeamState:
-    teamName = ''
-    currentDriver = ''
-    overallPosition = -1
-    classPosition = -1
-    lap = 0
-    lastLaptime = 0
-    onPitRoad = -1
-    trackLoc = -1
-    pitstops = []
-    
     def fromDict(self, dict):
-        self.teamName = dict['teamName']
-        self.currentDriver = dict['currentDriver']
-        self.overallPosition = dict['overallPosition']
-        self.classPosition = dict['classPosition']
-        self.lap = dict['lap']
-        self.lastLaptime = dict['lastLaptime']
-        self.onPitRoad = dict['onPitRoad']
-        self.trackLoc = dict['traclLoc']
-        self.pitstops = dict['pitstops']
-    
+        self.lap = dict['Lap']
+        self.tick = dict['Tick']
+        self.eventCount = dict['EventCount']
+
     def toDict(self):
         dict = {}
-        dict['teamName'] = self.teamName
-        dict['currentDriver'] = self.currentDriver
-        dict['overallPosition'] = self.overallPosition
-        dict['classPosition'] = self.classPosition
-        dict['lap'] = self.lap
-        dict['lastLapTime'] = self.lastLaptime
-        dict['onPitRoad'] = self.onPitRoad
-        dict['tracLoc'] = self.trackLoc
-        dict['pitstops'] = self.pitstops
-
+        dict['Lap'] = self.lap
+        dict['Tick'] = self.tick
+        dict['EventCount'] = self.eventCount
         return dict
 
-class TrackEvent:
-    currentDriver = ''
-    type = ''
-    sessionTime = -1
+class Field:
+    teams = []
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -101,12 +75,12 @@ def check_iracing():
     if state.ir_connected and not (ir.is_initialized and ir.is_connected):
         state.ir_connected = False
         # don't forget to reset all your in State variables
-        state.date_time = -1
         state.tick = 0
         state.lap = 0
         state.sessionId = -1
         state.subSessionId = -1
         state.sessionNum = -1
+        state.eventCount = 0
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -132,31 +106,22 @@ def check_iracing():
 
             collectionName = getCollectionName()
             print(collectionName)
-#            col_ref = db.collection(collectionName)
-#            if state.sessionType == 'single':
-#                try:
-#                    docs = list(col_ref.stream())
-#                    if len(docs) > 0:
-#                        print('Single session, deleting all data in collection ' + collectionName)
-#                        for doc in docs:
-#                            doc.reference.delete()
-#                    
-#                    col_ref.document('Info').set(getInfoDoc())
-#                except Exception as ex:
-#                    print('Firestore error: ' + str(ex))
+            fieldsize = len(ir['DriverInfo']['Drivers'])
+            if len(field.teams) < fieldsize:
+                field.teams = [None] * fieldsize
+                print('fieldsize: ' + str(fieldsize))
+
+            doc = db.collection(collectionName).document('State').get()
+            if doc.exists:
+                print('Sync state on connect change')
+                state.fromDict(doc.to_dict())
+            else:
+                print('No state in ' + collectionName)
 
 def getCollectionName():
 
     trackName = ir['WeekendInfo']['TrackName']
     return str(trackName) + '@' + state.sessionId + '#' + state.subSessionId + '#' + str(state.sessionNum)
-
-def checkPitRoad():
-        
-        try:
-            col_ref = db.collection(collectionName).document('Info')
-            col_ref.set(infodoc)
-        except Exception as ex:
-            print('Unable to write info document: ' + str(ex))
 
 def checkSessionChange():
     sessionChange = False
@@ -172,6 +137,9 @@ def checkSessionChange():
     if state.sessionNum != ir['SessionNum']:
         state.sessionNum = ir['SessionNum']
         sessionChange = True
+
+    if sessionChange:
+        print('SessionId  : ' + getCollectionName())
 
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -203,78 +171,98 @@ def loop():
         driver = driverList[driverIdx]
         dict = {}
     #if lap != state.lap and lastLaptime != state.lastLaptime:
-        state.lap = lap
+        #state.lap = lap
 
         dict['teamName'] = driver['TeamName']
         dict['currentDriver'] = driver['UserName']
         dict['overallPosition'] = position
         dict['classPosition'] = positions[position]['ClassPosition']
-        dict['lap'] = ir['CarIdxLap'][driverIdx]
+        dict['lapsComplete'] = positions[position]['LapsComplete']
         dict['lastLapTime'] = positions[position]['LastTime'] / 86400
         dict['SessionTime'] = ir['SessionTime'] / 86400
 
         dict['onPitRoad'] = ir['CarIdxOnPitRoad'][driverIdx]
-        dict['trackLoc'] = ir['CarIdxTrackSurface']
-        dict['pitstops'] = []
+        dict['trackLoc'] = ir['CarIdxTrackSurface'][driverIdx]
 
         dataChanged = False
         
-        if teams[driverIdx]:
-            teams[driverIdx]['teamName'] = driver['TeamName']
-            teams[driverIdx]['currentDriver'] = driver['UserName']
-            teams[driverIdx]['overallPosition'] = position
-            teams[driverIdx]['classPosition'] = positions[position]['ClassPosition']
-            teams[driverIdx]['lap'] = ir['CarIdxLap'][driverIdx]
-            teams[driverIdx]['lastLapTime'] = positions[position]['LastTime'] / 86400
-            teams[driverIdx]['SessionTime'] = ir['SessionTime'] / 86400
-
-            if teams[driverIdx]['onPitRoad'] != dict['onPitRoad']:
-                trackEvent = TrackEvent()
-                trackEvent.currentDriver = driver['UserName']
-                if dict['onPitRoad']:
-                    trackEvent.type = 'PitEnter'
-                else:
-                    trackEventType = 'PitExit'
-
-                teams[driverIdx]['pitstops'].append(pitEvent)
+        if field.teams[driverIdx]:
+            field.teams[driverIdx]['teamName'] = driver['TeamName']
+            field.teams[driverIdx]['currentDriver'] = driver['UserName']
+            field.teams[driverIdx]['overallPosition'] = position
+            field.teams[driverIdx]['CarNumber'] = driver['CarNumberRaw']
+            field.teams[driverIdx]['classPosition'] = positions[position]['ClassPosition']
+            field.teams[driverIdx]['lap'] = ir['CarIdxLap'][driverIdx]
+            field.teams[driverIdx]['SessionTime'] = ir['SessionTime'] / 86400
+            if field.teams[driverIdx]['lastLapTime'] != dict['lastLapTime']:
+                field.teams[driverIdx]['lastLapTime'] = positions[position]['LastTime'] / 86400
                 dataChanged = True
-            
-            if teams[driverIdx]['trackLoc'] != dict['trackLoc']:
-                trackEvent = TrackEvent()
-                trackEvent.currentDriver = driver['UserName']
+
+            if field.teams[driverIdx]['onPitRoad'] != dict['onPitRoad']:
+                trackEvent = {}
+                trackEvent['currentDriver'] = driver['UserName']
+                trackEvent['teamName'] = driver['TeamName']
+                trackEvent['CarNumber'] = driver['CarNumberRaw']
+                trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
+                trackEvent['SessionTime'] = ir['SessionTime'] / 86400
+                if dict['onPitRoad']:
+                    trackEvent['type'] = 'PitEnter'
+                else:
+                    trackEvent['type'] = 'PitExit'
+
+                field.teams[driverIdx]['onPitRoad'] = dict['onPitRoad']
+
+                print(json.dumps(trackEvent))
+                state.eventCount += 1
+                try:
+                    col_ref.document(str(state.eventCount)).set(trackEvent)
+                except Exception as ex:
+                    print('Unable to write event document: ' + str(ex))
+
+            if field.teams[driverIdx]['trackLoc'] != dict['trackLoc']:
+                trackEvent = {}
+                trackEvent['currentDriver'] = driver['UserName']
+                trackEvent['teamName'] = driver['TeamName']
+                trackEvent['CarNumber'] = driver['CarNumberRaw']
+                trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
+                trackEvent['SessionTime'] = ir['SessionTime'] / 86400
                 #irsdk_NotInWorld       -1
                 #irsdk_OffTrack          0
                 #irsdk_InPitStall        1
                 #irsdk_AproachingPits    2
                 #irsdk_OnTrack           3
                 if dict['trackLoc'] == -1:
-                    trackEvent.type = 'OffWorld'
+                    trackEvent['type'] = 'OffWorld'
                 elif dict['trackLoc'] == 0:
-                    trackEvent.type = 'OffTrack'
+                    trackEvent['type'] = 'OffTrack'
                 elif dict['trackLoc'] == 1:
-                    trackEvent.type = 'InPitStall'
+                    trackEvent['type'] = 'InPitStall'
                 elif dict['trackLoc'] == 2:
-                    trackEvent.type = 'AproachingPits'
+                    trackEvent['type'] = 'AproachingPits'
                 elif dict['trackLoc'] == 3:
-                    trackEvent.type = 'OnTrack'
+                    trackEvent['type'] = 'OnTrack'
 
-                teams[driverIdx]['events'].append(trackEvent)
-                dataChanged = True
+                field.teams[driverIdx]['trackLoc'] = dict['trackLoc']
+                print(json.dumps(trackEvent))
+                state.eventCount += 1
+                try:
+                    col_ref.document(str(state.eventCount)).set(trackEvent)
+                except Exception as ex:
+                    print('Unable to write event document: ' + str(ex))
+
         else:
-            teams[driverIdx] = dict
+            field.teams[driverIdx] = dict
             dataChanged = True
 
+        position += 1
+
         if dataChanged:
-            print(json.dumps(teams[driverIdx]))
-#        if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
-#           try:
-#                col_ref.document(str(lap)).set(data)
-#            except Exception as ex:
-#                print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
-#            try:
-#                col_ref.document('State').set(syncState.toDict())
-#            except Exception as ex:
-#                print('Unable to write state document: ' + str(ex))
+            try:
+                col_ref.document('State').set(state.toDict())
+                col_ref.document('State').collection('Teams').document(str(dict['teamName'])).set(dict)
+            except Exception as ex:
+                print('Unable to write team data for ' + str(dict['teamName']) + ': ' + str(ex))
+
 
     else:
         checkSessionChange()
@@ -330,17 +318,10 @@ if __name__ == '__main__':
     if config.has_option('global', 'logfile'):
         logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
 
-    if config.has_option('global', 'iracingId'):
-        iracingId = config['global']['iracingId']
-        print('iRacing ID: ' + str(iracingId))
-    else:
-        print('option iRacingId not configured or irtactics.ini not found')
-        sys.exit(1)
-
     # initializing ir and state
     ir = irsdk.IRSDK()
     state = State()
-    teams = []
+    field = Field()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
 
     try:
