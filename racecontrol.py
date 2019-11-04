@@ -30,7 +30,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.85"
+__version__ = "0.90"
 
 import sys
 import configparser
@@ -153,6 +153,7 @@ def loop():
     ir.freeze_var_buffer_latest()
 
     state.tick += 1
+    state.lap = ir['LapCompleted']
 
     collectionName = getCollectionName()
     col_ref = db.collection(collectionName)
@@ -170,8 +171,6 @@ def loop():
         driverIdx = positions[position]['CarIdx']
         driver = driverList[driverIdx]
         dict = {}
-    #if lap != state.lap and lastLaptime != state.lastLaptime:
-        #state.lap = lap
 
         dict['teamName'] = driver['TeamName']
         dict['currentDriver'] = driver['UserName']
@@ -200,20 +199,22 @@ def loop():
 
             if field.teams[driverIdx]['onPitRoad'] != dict['onPitRoad']:
                 trackEvent = {}
-                trackEvent['currentDriver'] = driver['UserName']
-                trackEvent['teamName'] = driver['TeamName']
+                state.eventCount += 1
+                trackEvent['IncNo'] = state.eventCount
+                trackEvent['CurrentDriver'] = driver['UserName']
+                trackEvent['TeamName'] = driver['TeamName']
                 trackEvent['CarNumber'] = driver['CarNumberRaw']
                 trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
                 trackEvent['SessionTime'] = ir['SessionTime'] / 86400
                 if dict['onPitRoad']:
-                    trackEvent['type'] = 'PitEnter'
+                    trackEvent['Type'] = 'PitEnter'
                 else:
-                    trackEvent['type'] = 'PitExit'
+                    trackEvent['Type'] = 'PitExit'
 
                 field.teams[driverIdx]['onPitRoad'] = dict['onPitRoad']
 
                 print(json.dumps(trackEvent))
-                state.eventCount += 1
+                
                 try:
                     col_ref.document(str(state.eventCount)).set(trackEvent)
                 except Exception as ex:
@@ -221,8 +222,10 @@ def loop():
 
             if field.teams[driverIdx]['trackLoc'] != dict['trackLoc']:
                 trackEvent = {}
-                trackEvent['currentDriver'] = driver['UserName']
-                trackEvent['teamName'] = driver['TeamName']
+                state.eventCount += 1
+                trackEvent['IncNo'] = state.eventCount
+                trackEvent['CurrentDriver'] = driver['UserName']
+                trackEvent['TeamName'] = driver['TeamName']
                 trackEvent['CarNumber'] = driver['CarNumberRaw']
                 trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
                 trackEvent['SessionTime'] = ir['SessionTime'] / 86400
@@ -232,19 +235,18 @@ def loop():
                 #irsdk_AproachingPits    2
                 #irsdk_OnTrack           3
                 if dict['trackLoc'] == -1:
-                    trackEvent['type'] = 'OffWorld'
+                    trackEvent['Type'] = 'OffWorld'
                 elif dict['trackLoc'] == 0:
-                    trackEvent['type'] = 'OffTrack'
+                    trackEvent['Type'] = 'OffTrack'
                 elif dict['trackLoc'] == 1:
-                    trackEvent['type'] = 'InPitStall'
+                    trackEvent['Type'] = 'InPitStall'
                 elif dict['trackLoc'] == 2:
-                    trackEvent['type'] = 'AproachingPits'
+                    trackEvent['Type'] = 'AproachingPits'
                 elif dict['trackLoc'] == 3:
-                    trackEvent['type'] = 'OnTrack'
+                    trackEvent['Type'] = 'OnTrack'
 
                 field.teams[driverIdx]['trackLoc'] = dict['trackLoc']
                 print(json.dumps(trackEvent))
-                state.eventCount += 1
                 try:
                     col_ref.document(str(state.eventCount)).set(trackEvent)
                 except Exception as ex:
