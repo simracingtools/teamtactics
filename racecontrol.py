@@ -141,6 +141,18 @@ def checkSessionChange():
     if sessionChange:
         print('SessionId  : ' + getCollectionName())
 
+def generateEvent(driver):
+    trackEvent = {}
+    state.eventCount += 1
+    trackEvent['IncNo'] = state.eventCount
+    trackEvent['CurrentDriver'] = driver['UserName']
+    trackEvent['TeamName'] = driver['TeamName']
+    trackEvent['CarNumber'] = driver['CarNumberRaw']
+    trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
+    trackEvent['SessionTime'] = ir['SessionTime'] / 86400
+    
+    return trackEvent
+
 # our main loop, where we retrieve data
 # and do something useful with it
 def loop():
@@ -187,7 +199,6 @@ def loop():
         
         if field.teams[driverIdx]:
             field.teams[driverIdx]['teamName'] = driver['TeamName']
-            field.teams[driverIdx]['currentDriver'] = driver['UserName']
             field.teams[driverIdx]['overallPosition'] = position
             field.teams[driverIdx]['CarNumber'] = driver['CarNumberRaw']
             field.teams[driverIdx]['classPosition'] = positions[position]['ClassPosition']
@@ -197,15 +208,22 @@ def loop():
                 field.teams[driverIdx]['lastLapTime'] = positions[position]['LastTime'] / 86400
                 dataChanged = True
 
+            if field.teams[driverIdx]['currentDriver'] != driver['UserName']: 
+            #and dict['trackLoc'] == 3:
+                trackEvent = generateEvent(driver)
+                trackEvent['Type'] = 'DriverChange'
+
+                field.teams[driverIdx]['currentDriver'] = driver['UserName']
+                
+                print(json.dumps(trackEvent))
+                
+                try:
+                    col_ref.document(str(state.eventCount)).set(trackEvent)
+                except Exception as ex:
+                    print('Unable to write event document: ' + str(ex))
+
             if field.teams[driverIdx]['onPitRoad'] != dict['onPitRoad']:
-                trackEvent = {}
-                state.eventCount += 1
-                trackEvent['IncNo'] = state.eventCount
-                trackEvent['CurrentDriver'] = driver['UserName']
-                trackEvent['TeamName'] = driver['TeamName']
-                trackEvent['CarNumber'] = driver['CarNumberRaw']
-                trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
-                trackEvent['SessionTime'] = ir['SessionTime'] / 86400
+                trackEvent = generateEvent(driver)
                 if dict['onPitRoad']:
                     trackEvent['Type'] = 'PitEnter'
                 else:
@@ -221,14 +239,7 @@ def loop():
                     print('Unable to write event document: ' + str(ex))
 
             if field.teams[driverIdx]['trackLoc'] != dict['trackLoc']:
-                trackEvent = {}
-                state.eventCount += 1
-                trackEvent['IncNo'] = state.eventCount
-                trackEvent['CurrentDriver'] = driver['UserName']
-                trackEvent['TeamName'] = driver['TeamName']
-                trackEvent['CarNumber'] = driver['CarNumberRaw']
-                trackEvent['Lap'] = ir['CarIdxLap'][driverIdx]
-                trackEvent['SessionTime'] = ir['SessionTime'] / 86400
+                trackEvent = generateEvent(driver)
                 #irsdk_NotInWorld       -1
                 #irsdk_OffTrack          0
                 #irsdk_InPitStall        1
