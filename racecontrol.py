@@ -272,7 +272,7 @@ def loop():
         if dataChanged:
             try:
                 col_ref.document('State').set(state.toDict())
-                col_ref.document('State').collection('Teams').document(str(dict['teamName'])).set(dict)
+                col_ref.document('Team' + str(dict['teamName'])).set(dict)
             except Exception as ex:
                 print('Unable to write team data for ' + str(dict['teamName']) + ': ' + str(ex))
 
