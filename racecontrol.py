@@ -68,6 +68,12 @@ class State:
 class Field:
     teams = []
 
+    def toDict(self):
+        dict = {}
+        dict['Teams'] = self.teams
+        
+        return dict
+
 # here we check if we are connected to iracing
 # so we can retrieve some data
 def check_iracing():        
@@ -272,9 +278,10 @@ def loop():
         if dataChanged:
             try:
                 col_ref.document('State').set(state.toDict())
-                col_ref.document('Team' + str(dict['teamName'])).set(dict)
+                #col_ref.document('Team' + str(dict['teamName'])).set(dict)
+                col_ref.document('Teams').set(field.toDict())
             except Exception as ex:
-                print('Unable to write team data for ' + str(dict['teamName']) + ': ' + str(ex))
+                print('Unable to write team data: ' + str(ex))
 
 
     else:
