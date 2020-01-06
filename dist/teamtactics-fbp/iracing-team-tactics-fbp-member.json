@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "iracing-team-tactics",
+  "private_key_id": "a22f472e709f84ea69366f63d87b70295eed26a4",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC52O7SUmNoPJ06\nOWU4hKup0C5AZ4tCnsrjUPdjo9UMm319w7pnyJvcE1BWX2089Aow/S5z3/5Qr0Jo\n/6Z25goD7HP7B6BKHFjVnyB2Qk8K4cr0g8Gcx1kuNgMLm1313SVQJHAApHFY9rUy\nneuTc1JXSdu2W6HfhF2lj0wftpSiyYH9LcxS+DTuP3FAhSbYLgCYRO9fUWu/IwVN\nIQbNxzM/zMAZiyuX411k3CDJyS5fGrPv1bwwvWVvzOvTuRVQSeaGGXRkpOni8gS6\nahAYAPqjxbkP7szKzIYdnoXW2IUs4vQNu1bHuuBtj16xSGUkdeVtTCpFR0yb+UI4\nXPDE9SDVAgMBAAECggEABVG17iuhAD4B4wV7Be3YKvVUKZA9HmREmtJ5ri6lfaWi\npxuXxXoqqdccrMgw7HZwpzvL3VGrKfyGKlKs3UjSvw+At03d0tkyWrTh/TiDIiTZ\nxftSao4TGZ0+o5GoFA4nD/7m/MG4I8t13rPB5xe9ItXwlazUOn1Dn+Y0z9COOwV8\nV7MWuuwEH0d6ZsD8C6VWcI+v0m9JI0tjoNb6rsPu8Ucz4kZBUEvQhviBK4U6pC8C\n028X6yW/nM9owKnqOE6ql19bXMQSPfV/mz14jrz1xiAP3es78H/2gm4O/8/n4SFA\nW+T6TQw7xU4CBvjEyzUxWBnVKlWy4McBXaIHd4Y3kQKBgQD7k5TgMo0yjix/6iRt\nchyOcA+5dZcpWjseeTTVuprKCpieEiD+ca8Gl09UPzVn29F9dpvi30OdEly/mXfd\njC1lpUOknYX5L0llZubXn6jUEHwrFucKOBNytW9z5QPmn3uvXNf8yVa7NwxSUf9j\noBZl9754q2chpN1rS7txEQm7JQKBgQC9HXxW9DMMBmTOKZggurwrTeSRTZTJOWZK\noXqjaSOl4LzUEZA97dr4N+WPKBZly6IPJBu9yPCnf+4iUqld8yTO8FUl+0PJ1dkQ\nOtVf0NB0fjlH00e4PK+5ygejLPkRMIu+aPxv3Gc9q+nxLnzdoFpfcu+u6rlGxqy5\n8BdeZQs38QKBgQCRXB2aSTsyadmmczhnEJcVagR76UjVOPCN1ATGNZL4iJTUSK9N\ntYwm58iLahZGk0mBD8ZUmSItII38mwUaOsOERrBF7kqZx0vGTmW1Uugu1/OWxh3q\n1qnODq1+LmZJm/7QPXoC8qatd8ojyoMhIj+u3S3t9UOaufLB6zk7xFd2DQKBgDOa\nhyJHEmLWn80txmgv7Ea4w4TusYnTEtmMhKVwfBy4XW5UuJJdhCG1RvuwSaRPU5Jk\nHPnFif16yCUvfy22ujWJmQJ7NL0vkEKAe1bg6PDQvJqfyXM5hA3jVgAttmz9XTSA\n+1kewEEw1u5L7CChr+dZupN1U0c/0UQPgqDsW4pRAoGABu4WdO8VAG2l6J0sYMB0\nqWAlSIqFgjBD3shwV/+y1THw/ZuPOxVsbn1sJw7rg4yojQ60pERDHff3XUcO6Xqm\nAprPTw0wizUCCvOL8/q/OJiqrdXhUKIFUj4Al0eJ0ZOIh95rYjtdOeouimYMpMaL\nq9+mUW12sFN7Xo1E+E/Lvj4=\n-----END PRIVATE KEY-----\n",
+  "client_email": "fbp-team-member@iracing-team-tactics.iam.gserviceaccount.com",
+  "client_id": "104712482208455153054",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/fbp-team-member%40iracing-team-tactics.iam.gserviceaccount.com"
+}
