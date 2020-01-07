@@ -39,10 +39,12 @@ import time
 import json
 import logging
 from google.cloud import firestore
+from google.cloud import pubsub_v1
 from datetime import datetime
 from datetime import timedelta
 
 from iracing.IrTypes import SyncState
+from iracing.IrTypes import LapData
 
 # this is our State class, with some helpful variables
 class State:
@@ -106,9 +108,8 @@ def check_iracing():
 def checkDriver():
     currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
-    if syncState.currentDriver != currentDriver:
+    if syncState.updateDriver(currentDriver):
         print('Driver: ' + currentDriver)
-        syncState.currentDriver = currentDriver
 
         # sync state on self driving
         if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
@@ -117,9 +118,7 @@ def checkDriver():
             
             if doc.exists:
                 print('Sync state on driver change')
-                syncState.fromDict(doc.to_dict())
-                # re-set current driver
-                syncState.currentDriver = currentDriver
+                syncState.fromDict(doc.to_dict(), currentDriver)
                 if debug:
                     print('State: ' + str(syncState.toDict()))
             else:
@@ -148,33 +147,13 @@ def getInfoDoc():
 
     return info
 
-def checkPitRoad():
-    syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'])
-    if syncState.exitPits > 0:
-        pitstopData = syncState.pitstopData()
-
 def checkSessionChange():
-    sessionChange = False
-    
-    if state.driverIdx == -1:
-        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
+    if syncState.updateSession(
+            str(ir['WeekendInfo']['SessionID']), 
+            str(ir['WeekendInfo']['SubSessionID']), 
+            str(ir['SessionNum'])):
 
-    if syncState.sessionId != str(ir['WeekendInfo']['SessionID']):
-        syncState.sessionId = str(ir['WeekendInfo']['SessionID'])
         state.driverIdx = ir['DriverInfo']['DriverCarIdx']
-        sessionChange = True
-                
-    if syncState.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
-        syncState.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
-        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
-        sessionChange = True
-
-    if syncState.sessionNum != ir['SessionNum']:
-        syncState.sessionNum = ir['SessionNum']
-        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
-        sessionChange = True
-
-    if sessionChange:
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
@@ -219,75 +198,30 @@ def loop():
     checkDriver()
 
     # check for pit enter/exit
-    checkPitRoad()
-
-    data = {}
+    syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'])
+    
     #if lap != state.lap and lastLaptime != state.lastLaptime:
     if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
         syncState.updateLap(lap, lastLaptime)
 
-        data['Lap'] = lap
-        data['StintLap'] = syncState.stintLap
-        data['StintCount'] = syncState.stintCount
-        data['Driver'] = syncState.currentDriver
-        data['Laptime'] = syncState.lastLaptime 
-        data['FuelUsed'] = state.fuel - ir['FuelLevel']
+        lapdata = LapData(syncState, ir)
+        #data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
-        data['FuelLevel'] = ir['FuelLevel']
-        data['TrackTemp'] = ir['TrackTemp']
-        data['PitServiceFlags'] = ir['PitSvFlags']
-        data['SessionTime'] = ir['SessionTime'] / 86400
-
-        if ir['OnPitRoad']:
-            syncState.stintCount = syncState.stintCount + 1
-            syncState.stintLap = 0
-
-        if syncState.enterPits:
-            data['PitEnter'] = syncState.enterPits / 86400
-            syncState.enterPits = 0
-        else:
-            data['PitEnter'] = 0
-
-        if syncState.exitPits:
-            data['PitExit'] = syncState.exitPits / 86400
-            syncState.exitPits = 0
-        else:
-            data['PitExit'] = 0
-
-        if syncState.stopMoving:
-            data['StopMoving'] = syncState.stopMoving / 86400
-            syncState.stopMoving = 0
-        else:
-            data['StopMoving'] = 0
-
-        if syncState.startMoving:
-            data['StartMoving'] = syncState.startMoving / 86400
-            syncState.startMoving = 0
-        else:
-            data['StartMoving'] = 0
-
-        if syncState.repairTime > 0:
-            data['PitRepair'] = syncState.repairTime / 86400
-            syncState.repairTime = 0
-        else:
-            data['PitRepair'] = 0
-        
-        if syncState.optRepairTime > 0:
-            data['PitOptRepair'] = syncState.optRepairTime / 86400
-            syncState.optRepairTime = 0
-        else:
-            data['PitOptRepair'] = 0
-
-        if syncState.towingTime > 0:
-            data['TowingTime'] = syncState.towingTime / 86400
-            syncState.towingTime = 0
-        else:
-            data['TowingTime'] = 0
+        #data['PitServiceFlags'] = ir['PitSvFlags']
 
         if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
             try:
-                col_ref.document(str(lap)).set(data)
+                if syncState.exitPits > 0:
+                    pitstopData = syncState.pitstopDataMessage()
+                    publisher.publish(pubTopic, data=str(pitstopData).encode('utf-8'))
+            except Exception as ex:
+                print('Unable to send pitstop message')
+
+            try:
+                #col_ref.document(str(lap)).set(lapdata.toDict())
+                lapmsg = lapdata.lapDataMessage()
+                publisher.publish(pubTopic, data=str(lapmsg).encode('utf-8'))
             except Exception as ex:
                 print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
             try:
@@ -296,7 +230,7 @@ def loop():
                 print('Unable to write state document: ' + str(ex))
 
         if debug:
-            logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(data))
+            logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(lapdata.toDict()))
 
     else:
         checkSessionChange()
@@ -361,19 +295,22 @@ if __name__ == '__main__':
         os.environ['http_proxy'] = proxyUrl
         os.environ['https_proxy'] = proxyUrl
 
-    if config.has_option('global', 'firebase'):
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['global']['firebase'])
+    if config.has_option('global', 'googleAccessToken'):
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['global']['googleAccessToken'])
         if debug:
             print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
 
         try:
             db = firestore.Client()
+            publisher = pubsub_v1.PublisherClient()
         except Exception as ex:
-            print('Unable to connect to Firebase: ' + str(ex))
+            print('Unable to connect to Google infrastructure: ' + str(ex))
             sys.exit(1)
 
+    if config.has_option('global', 'messageTopic'):
+        pubTopic = str(config['global']['messageTopic'])
     else:
-        print('option firebase not configured or irtactics.ini not found')
+        print('option messageTopic not configured or irtactics.ini not found')
         sys.exit(1)
         
     if config.has_option('global', 'logfile'):

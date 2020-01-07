@@ -43,7 +43,10 @@ A client which makes use of this data is subject of another project.
 	# Firebase access credentials. This file has to be provided
 	# by the Google Firestore owner. It has to placed in the same
 	# directory as teamtactics.exe
-	firebase = <firestoreCedentials.json>
+	googleAccessToken = <firestoreCedentials.json>
+
+	# message topic at Google sub-pub hub your team uses
+	messageTopic = <your teams pub/sub topic>
 
 	# Each team member has to configure its own iRacing ID here
 	iracingId = <your iRacingId>
@@ -95,7 +98,22 @@ The telemetry data mentioned above is collected in one document per lap - so doc
 
 
 ## Developer info
+### Prerequisites
+#### Python irsdk
+
+	pip3 install pyirsdk
+
+#### Google cloud firestore
+
+	pip3 install --upgrade google-cloud-firestore
+
+#### Google cloud pub-sub hub
+
+	pip3 install --upgrade google-cloud-pubsub
+
 ### Build
+
+
 
 Follow instructions at 
 https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution-doesnt-get-added-to-pyinstaller-build

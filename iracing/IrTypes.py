@@ -23,37 +23,41 @@ import json
 
 class LapData:
     lap = 0
+    stintLap = 0
+    stintCount = 0
     driver = ''
     laptime = 0
     fuelLevel = 0
     trackTemp = 0
     sessionTime = 0
 
-    def __init__(self, ir, driver):
+    def __init__(self, syncState, ir):
         self.lap = ir['Lap']
+        self.stintLap = syncState.stintLap
+        self.stintCount = syncState.stintCount
         self.fuelLevel = ir['FuelLevel']
         self.trackTemp = ir['TrackTemp']
         self.sessionTime = ir['SessionTime'] / 86400
         self.laptime = ir['LapLastLapTime']
-        self.driver = driver
+        self.driver = syncState.currentDriver
 
     def toDict(self):
         _lapdata = {}
         _lapdata['Lap'] = self.lap
-        _lapdata['Driver'] = self.driver
-        _lapdata['Laptime'] = self.laptime
-        _lapdata['FuelLevel'] = self.fuelLevel
-        _lapdata['TrackTemp'] = self.trackTemp
-        _lapdata['SessionTime'] = self.sessionTime
+        _lapdata['stintLap'] = self.stintLap
+        _lapdata['stintCount'] = self.stintCount
+        _lapdata['driver'] = self.driver
+        _lapdata['laptime'] = self.laptime
+        _lapdata['fuelLevel'] = self.fuelLevel
+        _lapdata['trackTemp'] = self.trackTemp
+        _lapdata['sessionTime'] = self.sessionTime
 
         return _lapdata
 
-    def toJson(self):
-
-        _lapJson = json.dumps(LapData.toDict(self))
-
-        return _lapJson
-
+    def lapDataMessage(self):
+        _lapMsg = toMessageJson('lapdata', self.toDict())
+        return json.dumps(_lapMsg)
+        
 class SyncState:
     lap = 0
     lastLaptime = 0
@@ -70,14 +74,30 @@ class SyncState:
     trackLocation = -1
 
     def updateSession(self, sessionId, subSessionId, sessionNum):
-        self.sessionId = sessionId
-        self.subSessionId = subSessionId
-        self.sessionNum = sessionNum
+        _sessionChanged = False
+
+        if self.sessionId != sessionId:
+            self.sessionId = sessionId
+            _sessionChanged = True
+
+        if self.subSessionId != sessionId:
+            self.subSessionId = subSessionId
+            _sessionChanged = True
+
+        if self.sessionNum != sessionId:
+            self.sessionNum = sessionNum
+            _sessionChanged = True
+
+        return _sessionChanged
 
     def updateDriver(self, driver):
-        self.currentDriver = driver
+        if self.currentDriver != driver:
+            self.currentDriver = driver
+            return True
+
+        return False
         
-    def fromDict(self, dict):
+    def fromDict(self, dict, driver = ''):
         self.lap = dict['lap']
         self.lastLaptime = dict['lapTime']
         self.stintCount = dict['stintCount']
@@ -89,7 +109,11 @@ class SyncState:
         self.sessionId = dict['sessionId']
         self.subSessionId = dict['subSessionId']
         self.sessionNum = dict['sessionNum']
-        self.currentDriver = dict['currentDriver']
+        if driver != '':
+            self.currentDriver = dict['currentDriver']
+        else:
+            self.currentDriver = driver
+
     
     def toDict(self):
         _syncState = {}
@@ -147,7 +171,7 @@ class SyncState:
             self.lastLaptime = laptime / 86400
             self.stintLap += 1
 
-    def pitstopData(self):
+    def pitstopDataMessage(self):
         _pitstopData = {}
         _pitstopData['stint'] = self.stintCount
         _pitstopData['enterPits'] = self.enterPits
@@ -155,4 +179,11 @@ class SyncState:
         _pitstopData['startMoving'] = self.startMoving
         _pitstopData['exitPits'] = self.exitPits
 
-        return _pitstopData
+        return json.dumps(toMessageJson('pitstop', _pitstopData))
+
+def toMessageJson(type, payload):
+    _msg = {}
+    _msg['type'] = type
+    _msg['payload'] = payload
+
+    return json.dumps(_msg)
