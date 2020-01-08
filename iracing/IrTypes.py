@@ -139,13 +139,13 @@ class SyncState:
         #irsdk_AproachingPits    2
         #irsdk_OnTrack           3
 
-        if trackLocation == 3 and lap != self.lap and self.exitPits > 0:
+        if trackLocation == 2 and self.exitPits > 0:
             # reset pit times 
             self.enterPits = 0
             self.stopMoving = 0
             self.startMoving = 0
             self.exitPits = 0
-
+        
         if trackLocation > 0 and self.trackLocation != trackLocation:
             # check only if no OffTrack and no NotInWorld
             self.trackLocation = trackLocation
@@ -159,7 +159,7 @@ class SyncState:
                 if self.stopMoving == 0:
                     self.stopMoving = sessionTime / 86400
             elif trackLocation == 3:
-                if self.exitPits == 0:
+                if self.enterPits > 0 and self.exitPits == 0:
                     self.exitPits = sessionTime / 86400
 
                     self.stintCount += 1
