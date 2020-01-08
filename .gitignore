@@ -4,7 +4,5 @@
 /build/
 /teamtactics.spec
 /irtactics.ini
-<<<<<<< HEAD
 /dist/teamtactics.exe
-=======
->>>>>>> branch 'master' of https://github.com/robbyb67/simracing.git
+/.vscode/
