@@ -45,6 +45,7 @@ from datetime import timedelta
 
 from iracing.IrTypes import SyncState
 from iracing.IrTypes import LapData
+from iracing.IrTypes import SessionInfo
 
 # this is our State class, with some helpful variables
 class State:
@@ -54,6 +55,7 @@ class State:
     lap = 0
     sessionType = ''
     driverIdx = -1
+    runningDriverId = ''
         
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -68,6 +70,7 @@ def check_iracing():
         state.lap = 0
         state.sessionType = ''
         state.driverIdx = -1
+        state.runningDriverId = ''
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -101,7 +104,6 @@ def check_iracing():
                         for doc in docs:
                             doc.reference.delete()
                     
-                    col_ref.document('Info').set(getInfoDoc())
                 except Exception as ex:
                     print('Firestore error: ' + str(ex))
 
@@ -110,9 +112,10 @@ def checkDriver():
 
     if syncState.updateDriver(currentDriver):
         print('Driver: ' + currentDriver)
+        state.runningDriverId = str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID'])
 
         # sync state on self driving
-        if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
+        if iracingId == state.runningDriverId:
             collectionName = getCollectionName()
             doc = db.collection(collectionName).document('State').get()
             
@@ -134,19 +137,6 @@ def getCollectionName():
     else:
         return str(teamName) + '@' + syncState.sessionId + '#' + syncState.subSessionId + '#' + str(syncState.sessionNum)
 
-def getInfoDoc():
-    info = {}
-    info['Version'] = __version__
-    info['Track'] = ir['WeekendInfo']['TrackName']
-    info['SessionLaps'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionLaps']
-    info['SessionTime'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionTime']
-    if info['SessionTime'] != 'unlimited':
-        info['SessionTime'] = float(ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionTime'][:-4]) / 86400
-    info['SessionType'] = ir['SessionInfo']['Sessions'][syncState.sessionNum]['SessionType']
-    info['TeamName'] = ir['DriverInfo']['Drivers'][state.driverIdx]['TeamName']
-
-    return info
-
 def checkSessionChange():
     if syncState.updateSession(
             str(ir['WeekendInfo']['SessionID']), 
@@ -154,6 +144,8 @@ def checkSessionChange():
             ir['SessionNum']):
 
         state.driverIdx = ir['DriverInfo']['DriverCarIdx']
+        state.runningDriverId = str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID'])
+
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
@@ -162,15 +154,19 @@ def checkSessionChange():
         collectionName = getCollectionName()
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
-        infodoc = getInfoDoc()
-        if debug:
-            print('infodoc: ' + str(infodoc))
-        
-        try:
-            col_ref = db.collection(collectionName).document('Info')
-            col_ref.set(infodoc)
-        except Exception as ex:
-            print('Unable to write info document: ' + str(ex))
+
+        if iracingId == state.runningDriverId:
+            sessionInfo = SessionInfo(collectionName, ir)
+            
+            try:
+                print(sessionInfo.toDict())
+                sessionData = sessionInfo.sessionDataMessage()
+                
+                publisher.publish(pubTopic, data=str(sessionData).encode('utf-8'))
+                #col_ref = db.collection(collectionName).document('Info')
+                #col_ref.set(infodoc)
+            except Exception as ex:
+                print('Unable to send session data: ' + str(ex))
 
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -191,14 +187,13 @@ def loop():
     elif debug:
         print('no last laptime')
 
-    collectionName = getCollectionName()
-    col_ref = db.collection(collectionName)
-    
     # check for driver change
     checkDriver()
 
     # check for pit enter/exit
-    syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'])
+    syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'], ir['PitSvFlags'], ir['PitRepairLeft'], ir['PitOptRepairLeft'] ,ir['PlayerCarTowTime'])
+    
+    col_ref = db.collection(getCollectionName())
     
     #if lap != state.lap and lastLaptime != state.lastLaptime:
     if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
@@ -206,15 +201,14 @@ def loop():
         syncState.updateLap(lap, lastLaptime)
 
         lapdata = LapData(syncState, ir)
-        #data['FuelUsed'] = state.fuel - ir['FuelLevel']
         state.fuel = ir['FuelLevel']
-        #data['PitServiceFlags'] = ir['PitSvFlags']
 
         if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
             try:
-                if syncState.exitPits > 0:
+                if syncState.isPitopComplete():
                     pitstopData = syncState.pitstopDataMessage()
                     publisher.publish(pubTopic, data=str(pitstopData).encode('utf-8'))
+                    syncState.resetPitstop()
 #                    publisher.publish(pubTopic, data=str(pitstopData))
                     print(syncState.pitstopData())
             except Exception as ex:
@@ -232,9 +226,6 @@ def loop():
                 col_ref.document('State').set(syncState.toDict())
             except Exception as ex:
                 print('Unable to write state document: ' + str(ex))
-
-        if debug:
-            logging.info(collectionName + ' lap ' + str(lap) + ': ' + json.dumps(lapdata.toDict()))
 
     else:
         checkSessionChange()
