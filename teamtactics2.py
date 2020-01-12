@@ -218,8 +218,8 @@ def loop():
                 #col_ref.document(str(lap)).set(lapdata.toDict())
                 lapmsg = lapdata.lapDataMessage()
                 publisher.publish(pubTopic, data=str(lapmsg).encode('utf-8'))
-#                publisher.publish(pubTopic, data=str(lapmsg))
-                print(lapdata.toDict())
+                if debug:
+                    print(lapdata.toDict())
             except Exception as ex:
                 print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
             try:
