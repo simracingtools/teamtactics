@@ -151,7 +151,7 @@ def checkSessionChange():
     if syncState.updateSession(
             str(ir['WeekendInfo']['SessionID']), 
             str(ir['WeekendInfo']['SubSessionID']), 
-            str(ir['SessionNum'])):
+            ir['SessionNum']):
 
         state.driverIdx = ir['DriverInfo']['DriverCarIdx']
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
@@ -187,8 +187,8 @@ def loop():
     lap = ir['LapCompleted']
     lastLaptime = 0
     if ir['LapLastLapTime'] > 0:
-        lastLaptime = ir['LapLastLapTime']
-    else:
+        lastLaptime = ir['LapLastLapTime']  / 86400
+    elif debug:
         print('no last laptime')
 
     collectionName = getCollectionName()
@@ -215,6 +215,8 @@ def loop():
                 if syncState.exitPits > 0:
                     pitstopData = syncState.pitstopDataMessage()
                     publisher.publish(pubTopic, data=str(pitstopData).encode('utf-8'))
+#                    publisher.publish(pubTopic, data=str(pitstopData))
+                    print(syncState.pitstopData())
             except Exception as ex:
                 print('Unable to send pitstop message')
 
@@ -222,6 +224,8 @@ def loop():
                 #col_ref.document(str(lap)).set(lapdata.toDict())
                 lapmsg = lapdata.lapDataMessage()
                 publisher.publish(pubTopic, data=str(lapmsg).encode('utf-8'))
+#                publisher.publish(pubTopic, data=str(lapmsg))
+                print(lapdata.toDict())
             except Exception as ex:
                 print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
             try:
@@ -251,9 +255,6 @@ def loop():
 
         except Exception as ex:
             print('Unable to write state document: ' + str(ex))
-
-        if syncState.fuel == -1:
-            syncState.fuel = ir['FuelLevel']
 
 
         

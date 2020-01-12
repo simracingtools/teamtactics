@@ -24,7 +24,7 @@ import json
 class LapData:
     lap = 0
     stintLap = 0
-    stintCount = 0
+    stintCount = 1
     driver = ''
     laptime = 0
     fuelLevel = 0
@@ -43,7 +43,7 @@ class LapData:
 
     def toDict(self):
         _lapdata = {}
-        _lapdata['Lap'] = self.lap
+        _lapdata['lap'] = self.lap
         _lapdata['stintLap'] = self.stintLap
         _lapdata['stintCount'] = self.stintCount
         _lapdata['driver'] = self.driver
@@ -61,7 +61,7 @@ class LapData:
 class SyncState:
     lap = 0
     lastLaptime = 0
-    stintCount = 1
+    stintCount = 0
     stintLap = 0
     enterPits = 0
     exitPits = 0
@@ -78,14 +78,17 @@ class SyncState:
 
         if self.sessionId != sessionId:
             self.sessionId = sessionId
+            print('SessionId change from ' + self.sessionId + ' to ' + sessionId)
             _sessionChanged = True
 
-        if self.subSessionId != sessionId:
+        if self.subSessionId != subSessionId:
             self.subSessionId = subSessionId
+            print('SubSessionId change from ' + self.subSessionId + ' to ' + subSessionId)
             _sessionChanged = True
 
-        if self.sessionNum != sessionId:
+        if self.sessionNum != sessionNum:
             self.sessionNum = sessionNum
+            print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(sessionNum))
             _sessionChanged = True
 
         return _sessionChanged
@@ -168,18 +171,23 @@ class SyncState:
     def updateLap(self, lap, laptime):
         if self.lap != lap and laptime > 0:
             self.lap = lap
-            self.lastLaptime = laptime / 86400
+            self.lastLaptime = laptime
             self.stintLap += 1
 
-    def pitstopDataMessage(self):
+    def pitstopData(self):
         _pitstopData = {}
-        _pitstopData['stint'] = self.stintCount
+        _pitstopData['stint'] = self.stintCount - 1
+        _pitstopData['lap'] = self.lap
+        _pitstopData['driver'] = self.currentDriver
         _pitstopData['enterPits'] = self.enterPits
         _pitstopData['stopMoving'] = self.stopMoving
         _pitstopData['startMoving'] = self.startMoving
         _pitstopData['exitPits'] = self.exitPits
+    
+        return _pitstopData
 
-        return json.dumps(toMessageJson('pitstop', _pitstopData))
+    def pitstopDataMessage(self):
+        return json.dumps(toMessageJson('pitstop', self.pitstopData()))
 
 def toMessageJson(type, payload):
     _msg = {}
