@@ -89,7 +89,7 @@ def checkDriver():
     currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
     if syncState.updateDriver(currentDriver):
-        print('Driver: ' + currentDriver)
+        print('Driver change: ' + currentDriver)
         state.updateRunningDriver(ir)
 
         # sync state on self driving
@@ -155,8 +155,8 @@ def loop():
     
     collectionName = syncState.getCollectionName(ir)
 
-    #if lap != state.lap and lastLaptime != state.lastLaptime:
-    if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
+    if lap > state.lap: #and lastLaptime != syncState.lastLaptime:
+    #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
         syncState.updateLap(lap, lastLaptime)
 
@@ -190,7 +190,7 @@ def loop():
             if debug:
                 print('No state document found - providing it')
 
-        connector.putDocument(collectionName, 'State', syncState.toDict())
+            connector.putDocument(collectionName, 'State', syncState.toDict())
             
     # publish session time and configured telemetry values every minute
     
