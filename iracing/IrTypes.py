@@ -101,8 +101,8 @@ class SyncState:
     exitPits = 0
     stopMoving = 0
     startMoving = 0
-    sessionId = ''
-    subSessionId = ''
+    sessionId = 0
+    subSessionId = 0
     sessionNum = 0
     currentDriver = ''
     trackLocation = -1
@@ -114,14 +114,14 @@ class SyncState:
     def updateSession(self, ir):
         _sessionChanged = False
 
-        if self.sessionId != str(ir['WeekendInfo']['SessionID']):
+        if self.sessionId != ir['WeekendInfo']['SessionID']:
             print('SessionId change from ' + self.sessionId + ' to ' + str(ir['WeekendInfo']['SessionID']))
-            self.sessionId = str(ir['WeekendInfo']['SessionID'])
+            self.sessionId = ir['WeekendInfo']['SessionID']
             _sessionChanged = True
 
-        if self.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
+        if self.subSessionId != ir['WeekendInfo']['SubSessionID']:
             print('SubSessionId change from ' + self.subSessionId + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
-            self.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
+            self.subSessionId = ir['WeekendInfo']['SubSessionID']
             _sessionChanged = True
 
         if self.sessionNum != ir['SessionNum']:
@@ -180,16 +180,16 @@ class SyncState:
         return _syncState
     
     def getCollectionName(self, ir):
-        driverIdx = ir['DriverInfo']['DriverCarIdx']
-        teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+        _driverIdx = ir['DriverInfo']['DriverCarIdx']
+        teamName = ir['DriverInfo']['Drivers'][_driverIdx]['TeamName']
 
-        if self.sessionId == '0' or ir['DriverInfo']['Drivers'][driverIdx]['TeamID'] == 0:
+        if self.sessionId == 0 or ir['DriverInfo']['Drivers'][_driverIdx]['TeamID'] == 0:
             # single session
-            car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
+            car = ir['DriverInfo']['Drivers'][_driverIdx]['CarPath']
             return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(self.sessionNum)
         else:
             # team session
-            return str(teamName) + '@' + self.sessionId + '#' + self.subSessionId + '#' + str(self.sessionNum)
+            return str(teamName) + '@' + str(self.sessionId) + '#' + str(self.subSessionId) + '#' + str(self.sessionNum)
 
     def updatePits(self, lap, trackLocation, sessionTime, serviceFlags, pitRepair, pitOptRepair, towTime):
         #irsdk_NotInWorld       -1
