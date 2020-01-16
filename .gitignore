@@ -2,6 +2,7 @@
 /*.json
 /__pycache__/
 /iracing/__pycache__/
+/connect/__pycache__/
 /build/
 /teamtactics.spec
 /irtactics.ini
