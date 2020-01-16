@@ -9,7 +9,10 @@ class IrTypesTest:
         ir.startup(test_file='data/monzasunset.dump')
 
         syncState = SyncState()
-        syncState.updateSession('session', 'subsession', '0')
+        syncState.sessionId = 'session'
+        syncState.subSessionId = 'subsession'
+        syncState.sessionNum = 0
+
         lapData = LapData(syncState, ir)
 
         print(syncState.toDict())
@@ -20,7 +23,9 @@ class IrTypesTest:
     def testPitstopMessage(self):
 
         syncState = SyncState()
-        syncState.updateSession('session', 'subsession', '0')
+        syncState.sessionId = 'session'
+        syncState.subSessionId = 'subsession'
+        syncState.sessionNum = 0
         syncState.lap = 2
 
         #irsdk_NotInWorld       -1
@@ -28,31 +33,31 @@ class IrTypesTest:
         #irsdk_InPitStall        1
         #irsdk_AproachingPits    2
         #irsdk_OnTrack           3
-        syncState.updatePits(2, 3, 0.1 * 86400)
+        syncState.updatePits(2, 3, 0.1 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 2, 0.2 * 86400)
+        syncState.updatePits(2, 2, 0.2 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 2, 0.3 * 86400)
+        syncState.updatePits(2, 2, 0.3 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 1, 0.4 * 86400)
+        syncState.updatePits(2, 1, 0.4 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 2, 0.5 * 86400)
+        syncState.updatePits(2, 2, 0.5 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 2, 0.6 * 86400)
+        syncState.updatePits(2, 2, 0.6 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(2, 3, 0.7 * 86400)
+        syncState.updatePits(2, 3, 0.7 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(3, 3, 0.7 * 86400)
+        syncState.updatePits(3, 3, 0.7 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
-        syncState.updatePits(3, 2, 0.8 * 86400)
+        syncState.updatePits(3, 2, 0.8 * 86400, 48, 0,0,0)
         print(syncState.pitstopDataMessage())
 
 if __name__ == "__main__":
