@@ -63,7 +63,6 @@ class Connector:
         doc = self.firestore.collection(collectionName).document(documentName).get()
         _docDict = None
         if doc.exists:
-            print('Sync document ' + documentName)
             _docDict = doc.to_dict()
         else:
             print('No ' + documentName + ' in ' + collectionName)
@@ -72,7 +71,8 @@ class Connector:
 
     def publish(self, topic, jsonData):
         try:
-            self.publisher.publish(topic, data=str(jsonData).encode('utf-8'))
+            requests.post('https://script.google.com/macros/s/AKfycbwnHIwtX-BDFcqdFw6BO71wLokAFT-Og9hhrLv0fW9WVOnay593/exec', json=jsonData)
+            #self.publisher.publish(topic, data=str(jsonData).encode('utf-8'))
         except Exception as ex:
             print('Unable to publish data: ' + str(ex))
 
