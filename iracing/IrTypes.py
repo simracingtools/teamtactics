@@ -33,6 +33,28 @@ from distutils.log import info
 import irsdk
 import json
 
+class LocalState:
+    ir_connected = False
+    date_time = -1
+    tick = 0
+    lap = 0
+    sessionType = ''
+    driverIdx = -1
+    runningDriverId = ''
+
+    def reset(self):
+        self.date_time = -1
+        self.tick = 0
+        self.fuel = 0
+        self.lap = 0
+        self.sessionType = ''
+        self.driverIdx = -1
+        self.runningDriverId = ''
+
+    def updateRunningDriver(self, ir):
+        self.driverIdx = ir['DriverInfo']['DriverCarIdx']
+        self.runningDriverId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserID'])
+
 class LapData:
     lap = 0
     stintLap = 0
@@ -89,22 +111,22 @@ class SyncState:
     pitOptRepairLeft = 0
     towTime = 0
 
-    def updateSession(self, sessionId, subSessionId, sessionNum):
+    def updateSession(self, ir):
         _sessionChanged = False
 
-        if self.sessionId != sessionId:
-            self.sessionId = sessionId
-            print('SessionId change from ' + self.sessionId + ' to ' + sessionId)
+        if self.sessionId != str(ir['WeekendInfo']['SessionID']):
+            print('SessionId change from ' + self.sessionId + ' to ' + str(ir['WeekendInfo']['SessionID']))
+            self.sessionId = str(ir['WeekendInfo']['SessionID'])
             _sessionChanged = True
 
-        if self.subSessionId != subSessionId:
-            self.subSessionId = subSessionId
-            print('SubSessionId change from ' + self.subSessionId + ' to ' + subSessionId)
+        if self.subSessionId != str(ir['WeekendInfo']['SubSessionID']):
+            print('SubSessionId change from ' + self.subSessionId + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
+            self.subSessionId = str(ir['WeekendInfo']['SubSessionID'])
             _sessionChanged = True
 
-        if self.sessionNum != sessionNum:
-            self.sessionNum = sessionNum
-            print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(sessionNum))
+        if self.sessionNum != ir['SessionNum']:
+            print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(ir['SessionNum']))
+            self.sessionNum = ir['SessionNum']
             _sessionChanged = True
 
         return _sessionChanged
@@ -157,6 +179,18 @@ class SyncState:
 
         return _syncState
     
+    def getCollectionName(self, ir):
+        driverIdx = ir['DriverInfo']['DriverCarIdx']
+        teamName = ir['DriverInfo']['Drivers'][driverIdx]['TeamName']
+
+        if self.sessionId == '0' or ir['DriverInfo']['Drivers'][driverIdx]['TeamID'] == 0:
+            # single session
+            car = ir['DriverInfo']['Drivers'][driverIdx]['CarPath']
+            return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(self.sessionNum)
+        else:
+            # team session
+            return str(teamName) + '@' + self.sessionId + '#' + self.subSessionId + '#' + str(self.sessionNum)
+
     def updatePits(self, lap, trackLocation, sessionTime, serviceFlags, pitRepair, pitOptRepair, towTime):
         #irsdk_NotInWorld       -1
         #irsdk_OffTrack          0
@@ -282,3 +316,5 @@ def toMessageJson(type, payload):
     _msg['payload'] = payload
 
     return json.dumps(_msg)
+
+

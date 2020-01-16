@@ -38,25 +38,16 @@ import os
 import time
 import json
 import logging
-from google.cloud import firestore
-from google.cloud import pubsub_v1
+
 from datetime import datetime
 from datetime import timedelta
 
+import connect
 from iracing.IrTypes import SyncState
 from iracing.IrTypes import LapData
 from iracing.IrTypes import SessionInfo
+from iracing.IrTypes import LocalState
 
-# this is our State class, with some helpful variables
-class State:
-    ir_connected = False
-    date_time = -1
-    tick = 0
-    lap = 0
-    sessionType = ''
-    driverIdx = -1
-    runningDriverId = ''
-        
 # here we check if we are connected to iracing
 # so we can retrieve some data
 def check_iracing():        
@@ -64,13 +55,7 @@ def check_iracing():
     if state.ir_connected and not (ir.is_initialized and ir.is_connected):
         state.ir_connected = False
         # don't forget to reset all your in State variables
-        state.date_time = -1
-        state.tick = 0
-        state.fuel = 0
-        state.lap = 0
-        state.sessionType = ''
-        state.driverIdx = -1
-        state.runningDriverId = ''
+        state.reset()
 
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
@@ -94,79 +79,54 @@ def check_iracing():
 
             checkSessionChange()
 
-            collectionName = getCollectionName()
-            col_ref = db.collection(collectionName)
+            collectionName = syncState.getCollectionName(ir)
             if state.sessionType == 'single':
-                try:
-                    docs = list(col_ref.stream())
-                    if len(docs) > 0:
-                        print('Single session, deleting all data in collection ' + collectionName)
-                        for doc in docs:
-                            doc.reference.delete()
-                    
-                except Exception as ex:
-                    print('Firestore error: ' + str(ex))
+                print('Single session, deleting all data in collection ' + collectionName)
+                connector.clearCollection(collectionName)
+
 
 def checkDriver():
     currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
     if syncState.updateDriver(currentDriver):
         print('Driver: ' + currentDriver)
-        state.runningDriverId = str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID'])
+        state.updateRunningDriver(ir)
 
         # sync state on self driving
         if iracingId == state.runningDriverId:
-            collectionName = getCollectionName()
-            doc = db.collection(collectionName).document('State').get()
+            collectionName = syncState.getCollectionName(ir)
+            doc = connector.getDocument(collectionName, 'State')
             
-            if doc.exists:
+            if doc is not None:
                 print('Sync state on driver change')
-                syncState.fromDict(doc.to_dict(), currentDriver)
+                syncState.fromDict(doc, currentDriver)
                 if debug:
-                    print('State: ' + str(syncState.toDict()))
+                    print('State: ' + str(doc))
             else:
                 print('No state in ' + collectionName)
 
-
-def getCollectionName():
-    teamName = ir['DriverInfo']['Drivers'][state.driverIdx]['TeamName']
-
-    if state.sessionType == 'single':
-        car = ir['DriverInfo']['Drivers'][state.driverIdx]['CarPath']
-        return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(syncState.sessionNum)
-    else:
-        return str(teamName) + '@' + syncState.sessionId + '#' + syncState.subSessionId + '#' + str(syncState.sessionNum)
-
 def checkSessionChange():
-    if syncState.updateSession(
-            str(ir['WeekendInfo']['SessionID']), 
-            str(ir['WeekendInfo']['SubSessionID']), 
-            ir['SessionNum']):
+    if syncState.updateSession(ir):
 
-        state.driverIdx = ir['DriverInfo']['DriverCarIdx']
-        state.runningDriverId = str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID'])
+        state.updateRunningDriver(ir)
 
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
             state.sessionType = 'team'
 
-        collectionName = getCollectionName()
+        collectionName = syncState.getCollectionName(ir)
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
         if iracingId == state.runningDriverId:
             sessionInfo = SessionInfo(collectionName, ir)
             
-            try:
-                print(sessionInfo.toDict())
-                sessionData = sessionInfo.sessionDataMessage()
-                
-                publisher.publish(pubTopic, data=str(sessionData).encode('utf-8'))
-                #col_ref = db.collection(collectionName).document('Info')
-                #col_ref.set(infodoc)
-            except Exception as ex:
-                print('Unable to send session data: ' + str(ex))
+            print(sessionInfo.toDict())
+            sessionData = sessionInfo.sessionDataMessage()
+            
+            connector.publish(pubTopic, sessionData)
+            
 
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -193,8 +153,8 @@ def loop():
     # check for pit enter/exit
     syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'], ir['PitSvFlags'], ir['PitRepairLeft'], ir['PitOptRepairLeft'] ,ir['PlayerCarTowTime'])
     
-    col_ref = db.collection(getCollectionName())
-    
+    collectionName = syncState.getCollectionName(ir)
+
     #if lap != state.lap and lastLaptime != state.lastLaptime:
     if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
@@ -203,52 +163,34 @@ def loop():
         lapdata = LapData(syncState, ir)
         state.fuel = ir['FuelLevel']
 
-        if iracingId == str(ir['DriverInfo']['Drivers'][state.driverIdx]['UserID']):
-            try:
-                if syncState.isPitopComplete():
-                    pitstopData = syncState.pitstopDataMessage()
-                    publisher.publish(pubTopic, data=str(pitstopData).encode('utf-8'))
-                    syncState.resetPitstop()
-#                    publisher.publish(pubTopic, data=str(pitstopData))
-                    print(syncState.pitstopData())
-            except Exception as ex:
-                print('Unable to send pitstop message')
+        if iracingId == state.runningDriverId:
+            if syncState.isPitopComplete():
+                pitstopData = syncState.pitstopDataMessage()
+                connector.publish(pubTopic, pitstopData)
+                syncState.resetPitstop()
+                print(syncState.pitstopData())
 
-            try:
-                #col_ref.document(str(lap)).set(lapdata.toDict())
-                lapmsg = lapdata.lapDataMessage()
-                publisher.publish(pubTopic, data=str(lapmsg).encode('utf-8'))
-                if debug:
-                    print(lapdata.toDict())
-            except Exception as ex:
-                print('Unable to write lap data for lop ' + str(lap) + ': ' + str(ex))
-            try:
-                col_ref.document('State').set(syncState.toDict())
-            except Exception as ex:
-                print('Unable to write state document: ' + str(ex))
+            lapmsg = lapdata.lapDataMessage()
+            connector.publish(pubTopic, lapmsg)
+            if debug:
+                print(lapdata.toDict())
+
+            connector.putDocument(collectionName, 'State', syncState.toDict())
 
     else:
         checkSessionChange()
 
-         
-        try:
-            doc = col_ref.document('State').get()
-            
-            if doc.exists:
-                if debug:
-                    data = doc.to_dict()
-                    print('State: ' + str(data))
-            else:
-                if debug:
-                    print('No state document found - providing it')
-
-                col_ref.document('State').set(syncState.toDict())
-
-        except Exception as ex:
-            print('Unable to write state document: ' + str(ex))
-
-
+        doc = connector.getDocument(collectionName, 'State')
         
+        if doc is not None:
+            if debug:
+                data = doc.to_dict()
+                print('State: ' + str(data))
+        else:
+            if debug:
+                print('No state document found - providing it')
+
+        connector.putDocument(collectionName, 'State', syncState.toDict())
             
     # publish session time and configured telemetry values every minute
     
@@ -293,8 +235,7 @@ if __name__ == '__main__':
             print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
 
         try:
-            db = firestore.Client()
-            publisher = pubsub_v1.PublisherClient()
+            connector = connect.Connector()
         except Exception as ex:
             print('Unable to connect to Google infrastructure: ' + str(ex))
             sys.exit(1)
@@ -317,7 +258,7 @@ if __name__ == '__main__':
 
     # initializing ir and state
     ir = irsdk.IRSDK()
-    state = State()
+    state = LocalState()
     syncState = SyncState()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
 
