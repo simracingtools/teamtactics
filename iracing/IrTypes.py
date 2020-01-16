@@ -213,15 +213,19 @@ class SyncState:
 
             if trackLocation == 2:
                 if self.enterPits == 0:
+                    print('Enter pits')
                     self.enterPits = sessionTime / 86400
                     self.serviceFlags = serviceFlags
                 elif self.startMoving == 0 and self.stopMoving > 0:
+                    print('Start moving')
                     self.startMoving = sessionTime / 86400
             elif trackLocation == 1:
+                print('Stop moving')
                 if self.stopMoving == 0:
                     self.stopMoving = sessionTime / 86400
             elif trackLocation == 3:
                 if self.enterPits > 0 and self.exitPits == 0:
+                    print('Exit pits')
                     self.exitPits = sessionTime / 86400
 
                     self.stintCount += 1
