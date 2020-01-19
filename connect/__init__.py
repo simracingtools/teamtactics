@@ -29,6 +29,7 @@ __license__ = "GPLv3"
 __status__ = "Beta"
 #__version__ = "0.5"
 
+import sys
 import requests
 from google.cloud import firestore
 from google.cloud import pubsub_v1
@@ -36,10 +37,30 @@ from google.cloud import pubsub_v1
 class Connector:
     firestore = None
     publisher = None
+    messageTopic = ''
+    postUrl = ''
     
-    def __init__(self):
+    def __init__(self, config):
+        print('Initializing connector')
         self.firestore = firestore.Client()
         self.publisher = pubsub_v1.PublisherClient()
+
+        if config.has_option('connect', 'messageTopic'):
+            self.messageTopic = str(config['connect']['messageTopic'])
+
+        if config.has_option('connect', 'postUrl'):
+            self.postUrl = str(config['connect']['postUrl'])
+    
+        if self.postUrl == '' and self.messageTopic == '':
+            print('At least one option out of messageTopic and postUrl has to be configured, exiting')
+            sys.exit(1)
+        elif  self.postUrl != '' and self.messageTopic != '':
+            print('At most one option out of messageTopic and postUrl has to be configured, exiting')
+            sys.exit(1)
+        elif self.postUrl != '':
+            print('using postUrl ' + self.postUrl + ' to publish events')
+        elif self.messageTopic != '':
+            print('using messageTopic ' + self.messageTopic + ' to publish events')  
 
     def putDocument(self, collectionName, documentName, documentData):
         try:
@@ -69,10 +90,12 @@ class Connector:
 
         return _docDict
 
-    def publish(self, topic, jsonData):
+    def publish(self, jsonData):
         try:
-            requests.post('https://script.google.com/macros/s/AKfycbwnHIwtX-BDFcqdFw6BO71wLokAFT-Og9hhrLv0fW9WVOnay593/exec', json=jsonData)
-            #self.publisher.publish(topic, data=str(jsonData).encode('utf-8'))
+            if self.postUrl != '':
+                requests.post(self.postUrl, json=jsonData)
+            else:
+                self.publisher.publish(self.messageTopic, data=str(jsonData).encode('utf-8'))
         except Exception as ex:
             print('Unable to publish data: ' + str(ex))
 

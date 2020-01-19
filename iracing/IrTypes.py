@@ -55,6 +55,12 @@ class LocalState:
         self.driverIdx = ir['DriverInfo']['DriverCarIdx']
         self.runningDriverId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserID'])
 
+    def itsMe(self, iracingId):
+        if self.runningDriverId == iracingId:
+            return True
+
+        return False
+        
 class LapData:
     lap = 0
     stintLap = 0
@@ -110,6 +116,7 @@ class SyncState:
     pitRepairLeft = 0
     pitOptRepairLeft = 0
     towTime = 0
+    pitState = ''
 
     def updateSession(self, ir):
         _sessionChanged = False
@@ -157,6 +164,7 @@ class SyncState:
         self.pitRepairLeft = dict['pitRepairLeft']
         self.pitOptRepairLeft = dict['pitOptRepairLeft']
         self.towTime = dict['towTime']
+        self.pitState = dict['pitState']
     
     def toDict(self):
         _syncState = {}
@@ -176,6 +184,7 @@ class SyncState:
         _syncState['pitRepairLeft'] = self.pitRepairLeft
         _syncState['pitOptRepairLeft'] = self.pitOptRepairLeft
         _syncState['towTime'] = self.towTime
+        _syncState['pitState'] = self.pitState
 
         return _syncState
     
@@ -191,45 +200,46 @@ class SyncState:
             # team session
             return str(teamName) + '@' + str(self.sessionId) + '#' + str(self.subSessionId) + '#' + str(self.sessionNum)
 
-    def updatePits(self, lap, trackLocation, sessionTime, serviceFlags, pitRepair, pitOptRepair, towTime):
+    def updatePits(self, state, ir):
+        if self.pitRepairLeft == 0:
+            self.pitRepairLeft = ir['PitRepairLeft']
+
+        if self.pitOptRepairLeft == 0:
+            self.pitOptRepairLeft = ir['PitOptRepairLeft']
+
+        if self.towTime == 0:
+            self.towTime = ir['PlayerCarTowTime']
+        
+        _trackLocation = ir['CarIdxTrackSurface'][state.driverIdx]
+        _sessionTime = ir['SessionTime']
         #irsdk_NotInWorld       -1
         #irsdk_OffTrack          0
         #irsdk_InPitStall        1
         #irsdk_AproachingPits    2
         #irsdk_OnTrack           3
-
-        if self.pitRepairLeft == 0:
-            self.pitRepairLeft = pitRepair
-
-        if self.pitOptRepairLeft == 0:
-            self.pitOptRepairLeft = pitOptRepair
-
-        if self.towTime == 0:
-            self.towTime = towTime
-        
-        if trackLocation > 0 and self.trackLocation != trackLocation:
+        if _trackLocation > 0 and self.trackLocation != _trackLocation:
             # check only if no OffTrack and no NotInWorld
-            self.trackLocation = trackLocation
+            self.trackLocation = _trackLocation
 
-            if trackLocation == 2:
-                if self.enterPits == 0:
-                    print('Enter pits')
-                    self.enterPits = sessionTime / 86400
-                    self.serviceFlags = serviceFlags
-                elif self.startMoving == 0 and self.stopMoving > 0:
-                    print('Start moving')
-                    self.startMoving = sessionTime / 86400
-            elif trackLocation == 1:
+            if self.pitState == '' and (_trackLocation == 2 or _trackLocation == 1):
+                print('Enter pits')
+                self.enterPits = _sessionTime / 86400
+                self.serviceFlags = ir['PitSvFlags']
+                self.pitState = 'ENTER'
+            elif self.pitState == 'ENTER' and _trackLocation == 1:
                 print('Stop moving')
-                if self.stopMoving == 0:
-                    self.stopMoving = sessionTime / 86400
-            elif trackLocation == 3:
-                if self.enterPits > 0 and self.exitPits == 0:
-                    print('Exit pits')
-                    self.exitPits = sessionTime / 86400
+                self.stopMoving = _sessionTime / 86400
+                self.pitState = 'SERVICE'
+            elif self.pitState == 'SERVICE' and _trackLocation == 2:
+                print('Start moving')
+                self.startMoving = _sessionTime / 86400
+                self.pitState = 'EXIT'
+            elif self.pitState == 'EXIT' and _trackLocation == 3:
+                print('Exit pits')
+                self.exitPits = _sessionTime / 86400
 
-                    self.stintCount += 1
-                    self.stintLap = 0
+                self.stintCount += 1
+                self.stintLap = 0
 
     def isPitopComplete(self):
         if self.enterPits > 0 and self.exitPits > 0:
@@ -245,6 +255,7 @@ class SyncState:
         self.pitOptRepairLeft = 0
         self.pitRepairLeft = 0
         self.towTime = 0
+        self.pitState = ''
 
     def updateLap(self, lap, laptime):
         if self.lap != lap and laptime > 0:

@@ -93,7 +93,7 @@ def checkDriver():
         state.updateRunningDriver(ir)
 
         # sync state on self driving
-        if iracingId == state.runningDriverId:
+        if state.itsMe(iracingId):
             collectionName = syncState.getCollectionName(ir)
             doc = connector.getDocument(collectionName, 'State')
             
@@ -119,13 +119,13 @@ def checkSessionChange():
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
-        if iracingId == state.runningDriverId:
+        if state.itsMe(iracingId):
             sessionInfo = SessionInfo(collectionName, ir)
             
             print(sessionInfo.toDict())
             sessionData = sessionInfo.sessionDataMessage()
             
-            connector.publish(pubTopic, sessionData)
+            connector.publish(sessionData)
             
 
 # our main loop, where we retrieve data
@@ -151,7 +151,7 @@ def loop():
     checkDriver()
 
     # check for pit enter/exit
-    syncState.updatePits(state.lap, ir['CarIdxTrackSurface'][state.driverIdx], ir['SessionTime'], ir['PitSvFlags'], ir['PitRepairLeft'], ir['PitOptRepairLeft'] ,ir['PlayerCarTowTime'])
+    syncState.updatePits(state, ir)
     
     collectionName = syncState.getCollectionName(ir)
 
@@ -163,15 +163,15 @@ def loop():
         lapdata = LapData(syncState, ir)
         state.fuel = ir['FuelLevel']
 
-        if iracingId == state.runningDriverId:
+        if state.itsMe(iracingId):
             if syncState.isPitopComplete():
                 pitstopData = syncState.pitstopDataMessage()
-                connector.publish(pubTopic, pitstopData)
+                connector.publish(pitstopData)
                 syncState.resetPitstop()
                 print(syncState.pitstopData())
 
             lapmsg = lapdata.lapDataMessage()
-            connector.publish(pubTopic, lapmsg)
+            connector.publish(lapmsg)
             if debug:
                 print(lapdata.toDict())
 
@@ -229,23 +229,17 @@ if __name__ == '__main__':
         os.environ['http_proxy'] = proxyUrl
         os.environ['https_proxy'] = proxyUrl
 
-    if config.has_option('global', 'googleAccessToken'):
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['global']['googleAccessToken'])
+    if config.has_option('connect', 'googleAccessToken'):
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['connect']['googleAccessToken'])
         if debug:
             print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
 
         try:
-            connector = connect.Connector()
+            connector = connect.Connector(config)
         except Exception as ex:
             print('Unable to connect to Google infrastructure: ' + str(ex))
             sys.exit(1)
 
-    if config.has_option('global', 'messageTopic'):
-        pubTopic = str(config['global']['messageTopic'])
-    else:
-        print('option messageTopic not configured or irtactics.ini not found')
-        sys.exit(1)
-        
     if config.has_option('global', 'logfile'):
         logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
 
