@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.95"
+__version__ = "0.97"
 
 import sys
 import configparser
@@ -155,7 +155,7 @@ def loop():
     
     collectionName = syncState.getCollectionName(ir)
 
-    if lap > state.lap: #and lastLaptime != syncState.lastLaptime:
+    if lap > state.lap and lastLaptime != syncState.lastLaptime:
     #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
         syncState.updateLap(lap, lastLaptime)
@@ -166,9 +166,10 @@ def loop():
         if state.itsMe(iracingId):
             if syncState.isPitopComplete():
                 pitstopData = syncState.pitstopDataMessage()
+                print(syncState.pitstopData())
                 connector.publish(pitstopData)
                 syncState.resetPitstop()
-                print(syncState.pitstopData())
+                
 
             lapmsg = lapdata.lapDataMessage()
             connector.publish(lapmsg)

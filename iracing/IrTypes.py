@@ -26,7 +26,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.96"
+__version__ = "0.97"
 
 from distutils.log import info
 
@@ -60,7 +60,7 @@ class LocalState:
             return True
 
         return False
-        
+
 class LapData:
     lap = 0
     stintLap = 0
@@ -107,9 +107,9 @@ class SyncState:
     exitPits = 0
     stopMoving = 0
     startMoving = 0
-    sessionId = 0
-    subSessionId = 0
-    sessionNum = 0
+    sessionId = -1
+    subSessionId = -1
+    sessionNum = -1
     currentDriver = ''
     trackLocation = -1
     serviceFlags = 0
@@ -122,12 +122,12 @@ class SyncState:
         _sessionChanged = False
 
         if self.sessionId != ir['WeekendInfo']['SessionID']:
-            print('SessionId change from ' + self.sessionId + ' to ' + str(ir['WeekendInfo']['SessionID']))
+            print('SessionId change from ' + str(self.sessionId) + ' to ' + str(ir['WeekendInfo']['SessionID']))
             self.sessionId = ir['WeekendInfo']['SessionID']
             _sessionChanged = True
 
         if self.subSessionId != ir['WeekendInfo']['SubSessionID']:
-            print('SubSessionId change from ' + self.subSessionId + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
+            print('SubSessionId change from ' + str(self.subSessionId) + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
             self.subSessionId = ir['WeekendInfo']['SubSessionID']
             _sessionChanged = True
 
@@ -146,25 +146,28 @@ class SyncState:
         return False
         
     def fromDict(self, dict, driver = ''):
-        self.lap = dict['lap']
-        self.lastLaptime = dict['lapTime']
-        self.stintCount = dict['stintCount']
-        self.stintLap = dict['stintLap']
-        self.enterPits = dict['enterPits']
-        self.exitPits = dict['exitPits']
-        self.stopMoving = dict['stopMoving']
-        self.startMoving = dict['startMoving']
-        self.sessionId = dict['sessionId']
-        self.subSessionId = dict['subSessionId']
-        self.sessionNum = dict['sessionNum']
-        if driver != '':
-            self.currentDriver = dict['currentDriver']
-        else:
-            self.currentDriver = driver
-        self.pitRepairLeft = dict['pitRepairLeft']
-        self.pitOptRepairLeft = dict['pitOptRepairLeft']
-        self.towTime = dict['towTime']
-        self.pitState = dict['pitState']
+        try:
+            self.lap = dict['lap']
+            self.lastLaptime = dict['lapTime']
+            self.stintCount = dict['stintCount']
+            self.stintLap = dict['stintLap']
+            self.enterPits = dict['enterPits']
+            self.exitPits = dict['exitPits']
+            self.stopMoving = dict['stopMoving']
+            self.startMoving = dict['startMoving']
+            self.sessionId = dict['sessionId']
+            self.subSessionId = dict['subSessionId']
+            self.sessionNum = dict['sessionNum']
+            if driver != '':
+                self.currentDriver = dict['currentDriver']
+            else:
+                self.currentDriver = driver
+            self.pitRepairLeft = dict['pitRepairLeft']
+            self.pitOptRepairLeft = dict['pitOptRepairLeft']
+            self.towTime = dict['towTime']
+            self.pitState = dict['pitState']
+        except Exception as ex:
+            print('Problem: ' + str(ex))
     
     def toDict(self):
         _syncState = {}
@@ -201,6 +204,10 @@ class SyncState:
             return str(teamName) + '@' + str(self.sessionId) + '#' + str(self.subSessionId) + '#' + str(self.sessionNum)
 
     def updatePits(self, state, ir):
+        if self.lap <= 1:
+            # dont count starting from box as pitstop
+            return
+
         if self.pitRepairLeft == 0:
             self.pitRepairLeft = ir['PitRepairLeft']
 
@@ -222,20 +229,20 @@ class SyncState:
             self.trackLocation = _trackLocation
 
             if self.pitState == '' and (_trackLocation == 2 or _trackLocation == 1):
-                print('Enter pits')
+                print('Enter pits: ' + str(_sessionTime))
                 self.enterPits = _sessionTime / 86400
                 self.serviceFlags = ir['PitSvFlags']
                 self.pitState = 'ENTER'
             elif self.pitState == 'ENTER' and _trackLocation == 1:
-                print('Stop moving')
+                print('Stop moving: ' + str(_sessionTime))
                 self.stopMoving = _sessionTime / 86400
                 self.pitState = 'SERVICE'
             elif self.pitState == 'SERVICE' and _trackLocation == 2:
-                print('Start moving')
+                print('Start moving: ' + str(_sessionTime))
                 self.startMoving = _sessionTime / 86400
                 self.pitState = 'EXIT'
             elif self.pitState == 'EXIT' and _trackLocation == 3:
-                print('Exit pits')
+                print('Exit pits: ' + str(_sessionTime))
                 self.exitPits = _sessionTime / 86400
 
                 self.stintCount += 1
@@ -258,10 +265,15 @@ class SyncState:
         self.pitState = ''
 
     def updateLap(self, lap, laptime):
-        if self.lap != lap and laptime > 0:
+        if self.lap != lap: # and laptime > 0:
+            _lapDelta = lap - self.lap
             self.lap = lap
             self.lastLaptime = laptime
-            self.stintLap += 1
+            self.stintLap += _lapDelta
+            
+        if self.stintCount == 0:
+            self.stintCount = 1
+            self.stintLap = lap
 
     def pitstopData(self):
         _pitstopData = {}
@@ -273,9 +285,9 @@ class SyncState:
         _pitstopData['startMoving'] = self.startMoving
         _pitstopData['exitPits'] = self.exitPits
         _pitstopData['serviceFlags'] = self.serviceFlags
-        _pitstopData['repairLeft'] = self.pitRepairLeft
-        _pitstopData['optRepairLeft'] = self.pitOptRepairLeft
-        _pitstopData['towTime'] = self.towTime
+        _pitstopData['repairLeft'] = self.pitRepairLeft / 86400
+        _pitstopData['optRepairLeft'] = self.pitOptRepairLeft / 86400
+        _pitstopData['towTime'] = self.towTime / 86400
 
         return _pitstopData
 
