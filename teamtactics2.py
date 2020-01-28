@@ -257,9 +257,10 @@ if __name__ == '__main__':
     syncState = SyncState()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
 
-    try:
+    while True:
+        try:
         # infinite loop
-        while True:
+        
             # check if we are connected to iracing
             check_iracing()
                 
@@ -271,8 +272,11 @@ if __name__ == '__main__':
             # maximum you can use is 1/60
             # cause iracing update data with 60 fps
             time.sleep(0.5)
-    except KeyboardInterrupt:
-        # press ctrl+c to exit
-        print('exiting')
-        time.sleep(1)
-        pass
+        except KeyboardInterrupt:
+            # press ctrl+c to exit
+            print('exiting')
+            time.sleep(1)
+            break
+        except Exception as ex:
+            print(str(ex))
+            continue
