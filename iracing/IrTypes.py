@@ -312,7 +312,7 @@ class SessionInfo:
         self.track = ir['WeekendInfo']['TrackName']
         self.teamName = ir['DriverInfo']['Drivers'][_driverIdx]['TeamName']
         self.car = ir['DriverInfo']['Drivers'][_driverIdx]['CarScreenName']
-        self.maxFuel = ir['DriverInfo']['DriverCarFuelMaxLtr']
+        self.maxFuel = ir['DriverInfo']['DriverCarFuelMaxLtr'] * ir['DriverInfo']['DriverCarMaxFuelPct']
         self.sessionLaps = ir['SessionInfo']['Sessions'][_sessionNum]['SessionLaps']
         self.sessionTime = ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime']
         self.sessionType = ir['SessionInfo']['Sessions'][_sessionNum]['SessionType']
