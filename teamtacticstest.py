@@ -1,4 +1,5 @@
 import irsdk
+import iracing
 from iracing.IrTypes import SyncState
 from iracing.IrTypes import LapData
 
@@ -20,48 +21,14 @@ class IrTypesTest:
 
         ir.shutdown()
 
-    def testPitstopMessage(self):
+    def testSessionFlags(self):
+        print(str(hex(268697600)))
+        flags = iracing.checkSessionFlags(268697600)
+        print(flags)
 
-        syncState = SyncState()
-        syncState.sessionId = 'session'
-        syncState.subSessionId = 'subsession'
-        syncState.sessionNum = 0
-        syncState.lap = 2
-
-        #irsdk_NotInWorld       -1
-        #irsdk_OffTrack          0
-        #irsdk_InPitStall        1
-        #irsdk_AproachingPits    2
-        #irsdk_OnTrack           3
-        syncState.updatePits(2, 3, 0.1 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 2, 0.2 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 2, 0.3 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 1, 0.4 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 2, 0.5 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 2, 0.6 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(2, 3, 0.7 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(3, 3, 0.7 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
-
-        syncState.updatePits(3, 2, 0.8 * 86400, 48, 0,0,0)
-        print(syncState.pitstopDataMessage())
 
 if __name__ == "__main__":
     test = IrTypesTest()
 
     #test.testLapData()
-    test.testPitstopMessage()
+    test.testSessionFlags()

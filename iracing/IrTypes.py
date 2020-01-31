@@ -32,6 +32,7 @@ from distutils.log import info
 
 import irsdk
 import json
+import iracing
 
 class LocalState:
     ir_connected = False
@@ -344,4 +345,36 @@ def toMessageJson(type, payload):
 
     return json.dumps(_msg)
 
+class RunData:
+    fuelLevel = 0
+    flags = []
+    sessionTime = -1
+    estLaptime = 0
+
+    def update(self, ir):
+        _changed = False
+        if self.fuelLevel != ir['FuelLevel']:
+            _changed = True
+            self.fuelLevel = ir['FuelLevel']
+        if self.flags != ir['SessionFlags']:
+            _changed = True
+            self.flags = ir['SessionFlags']
+        if self.estLaptime != ir['DriverInfo']['DriverCarEstLapTime']:
+            _changed = True
+            self.estLaptime = ir['DriverInfo']['DriverCarEstLapTime']
+
+        self.sessionTime = ir['SessionTime'] / 86400
+        return _changed
+
+    def toDict(self):
+        _dict = {}
+        _dict['fuelLevel'] = self.fuelLevel
+        _dict['flags'] = self.flags
+        _dict['sessionTime'] = self.sessionTime
+        _dict['estLaptime'] = self.estLaptime
+
+        return _dict
+
+    def runDataMessage(self):
+        return json.dumps(toMessageJson('runData', self.toDict()))
 

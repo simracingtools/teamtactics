@@ -32,3 +32,57 @@ __status__ = "Beta"
 from iracing.IrTypes import LapData
 from iracing.IrTypes import SyncState
 from iracing.IrTypes import SessionInfo
+
+def checkSessionFlags(sessionFlags):
+    _flags = []
+
+    if sessionFlags & 0x00000001:
+        _flags.append('CHECKERD')
+    if sessionFlags & 0x00000002:
+        _flags.append('WHITE')
+    if sessionFlags & 0x00000004:
+        _flags.append('GREEN')
+    if sessionFlags & 0x00000008:
+        _flags.append('YELLOW')
+    if sessionFlags & 0x00000010:
+        _flags.append('RED')
+    if sessionFlags & 0x00000020:
+        _flags.append('BLUE')
+    if sessionFlags & 0x00000040:
+        _flags.append('DEBRIS')
+    if sessionFlags & 0x00000080:
+        _flags.append('CROSSED')
+    if sessionFlags & 0x00000100:
+        _flags.append('YELLOW WAV')
+    if sessionFlags & 0x00000200:
+        _flags.append('ONE TO GREEN')
+    if sessionFlags & 0x00000400:
+        _flags.append('GREEN HELD')
+    if sessionFlags & 0x00000800:
+        _flags.append('TEN TO GO')
+    if sessionFlags & 0x00001000:
+        _flags.append('FIVE TO GO')
+    if sessionFlags & 0x00002000:
+        _flags.append('RANDOM WAV')
+    if sessionFlags & 0x00004000:
+        _flags.append('CAUTION')
+    if sessionFlags & 0x00008000:
+        _flags.append('CAUTION WAV')
+    if sessionFlags & 0x00010000:
+        _flags.append('BLACK')
+    if sessionFlags & 0x00020000:
+        _flags.append('DQ')
+    if sessionFlags & 0x00040000:
+        _flags.append('SERVICIBLE')
+    if sessionFlags & 0x00080000:
+        _flags.append('FURLED')
+    if sessionFlags & 0x0010000:
+        _flags.append('REPAIR')
+    if sessionFlags & 0x10000000:
+        _flags.append('START HIDDEN')
+    if sessionFlags & 0x20000000:
+        _flags.append('START READY')
+    if sessionFlags & 0x40000000:
+        _flags.append('START SET')
+
+    return _flags

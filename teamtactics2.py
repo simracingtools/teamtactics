@@ -47,6 +47,7 @@ from iracing.IrTypes import SyncState
 from iracing.IrTypes import LapData
 from iracing.IrTypes import SessionInfo
 from iracing.IrTypes import LocalState
+from iracing.IrTypes import RunData
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -180,6 +181,9 @@ def loop():
 
     else:
         checkSessionChange()
+        if state.itsMe(iracingId) and runData.update(ir):
+            print(runData.toDict())
+            connector.publish(runData.runDataMessage())
 
         doc = connector.getDocument(collectionName, 'State')
         
@@ -255,6 +259,7 @@ if __name__ == '__main__':
     ir = irsdk.IRSDK()
     state = LocalState()
     syncState = SyncState()
+    runData = RunData()
     # Project ID is determined by the GCLOUD_PROJECT environment variable
 
     while True:
