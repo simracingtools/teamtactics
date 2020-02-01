@@ -79,6 +79,7 @@ def check_iracing():
             print('irsdk connected')
 
             checkSessionChange()
+            connector.updatePostUrl(config, state.runningTeam)
 
             collectionName = syncState.getCollectionName(ir)
             if state.sessionType == 'single':

@@ -90,6 +90,13 @@ class Connector:
 
         return _docDict
 
+    def updatePostUrl(self, config, teamName):
+        if config.has_option('connect', teamName):
+            self.postUrl = str(config['connect'][teamName])
+            print('Post URL changed for team ' + teamName + ': ' + self.postUrl)
+        else:
+            print('No change of post URL for team ' + teamName)
+
     def publish(self, jsonData):
         try:
             if self.postUrl != '':

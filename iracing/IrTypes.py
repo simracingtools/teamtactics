@@ -42,6 +42,7 @@ class LocalState:
     sessionType = ''
     driverIdx = -1
     runningDriverId = ''
+    runningTeam = ''
 
     def reset(self):
         self.date_time = -1
@@ -55,6 +56,7 @@ class LocalState:
     def updateRunningDriver(self, ir):
         self.driverIdx = ir['DriverInfo']['DriverCarIdx']
         self.runningDriverId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserID'])
+        self.runningTeam = str(ir['DriverInfo']['Drivers'][self.driverIdx]['TeamName']).replace(' ', '')
 
     def itsMe(self, iracingId):
         if self.runningDriverId == iracingId:
@@ -364,6 +366,9 @@ class RunData:
             self.estLaptime = ir['DriverInfo']['DriverCarEstLapTime']
 
         self.sessionTime = ir['SessionTime'] / 86400
+        if self.fuelLevel == 0:
+            _changed = False
+            
         return _changed
 
     def toDict(self):
