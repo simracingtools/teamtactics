@@ -353,7 +353,7 @@ class RunData:
 
     def update(self, ir):
         _changed = False
-        if self.fuelLevel != ir['FuelLevel']:
+        if self.fuelLevel != ir['FuelLevel'] and ir['FuelLevel'] > 0:
             _changed = True
             self.fuelLevel = ir['FuelLevel']
         if self.flags != ir['SessionFlags']:
@@ -369,9 +369,9 @@ class RunData:
     def toDict(self):
         _dict = {}
         _dict['fuelLevel'] = self.fuelLevel
-        _dict['flags'] = self.flags
+        _dict['flags'] = iracing.checkSessionFlags(self.flags)
         _dict['sessionTime'] = self.sessionTime
-        _dict['estLaptime'] = self.estLaptime
+        _dict['estLaptime'] = self.estLaptime / 86400
 
         return _dict
 
