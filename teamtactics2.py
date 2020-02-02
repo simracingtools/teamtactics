@@ -79,7 +79,6 @@ def check_iracing():
             print('irsdk connected')
 
             checkSessionChange()
-            connector.updatePostUrl(config, state.runningTeam)
 
             collectionName = syncState.getCollectionName(ir)
             if state.sessionType == 'single':
@@ -111,7 +110,8 @@ def checkSessionChange():
     if syncState.updateSession(ir):
 
         state.updateRunningDriver(ir)
-
+        connector.updatePostUrl(config, state.runningTeam)
+        
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
