@@ -1,27 +1,27 @@
-Version 0.95
+Version 0.97
 
 Teamtactics sammelt die folgenden Telemetriedaten des jeweils im Auto sitzenden
-Fahrers für jede Runde in einer Datenbank (Google Firestore):
+Fahrers fÃ¼r jede Runde in einer Datenbank (Google Firestore):
 
 * Gefahrene Runden
 * Letzte Rundenzeit
 * Tankinhalt
 * Benzinverbrauch in der letzten Runde
 * iRacing-ID des aktuellen Fahrers
-* Zeitstempel für Boxeneinfahrt/Boxenausfahrtausfahrt und Stop/Start der
+* Zeitstempel fÃ¼r Boxeneinfahrt/Boxenausfahrtausfahrt und Stop/Start der
   Bewegung in der Box
-* Flags für Boxenservice (Reifen, Tanken, Windshield, Fast Repair)
+* Flags fÃ¼r Boxenservice (Reifen, Tanken, Windshield, Fast Repair)
 * Streckentemperatur
 * Abgelaufene Renndauer
-* Zeiten für Towing, required and optional Repairs
+* Zeiten fÃ¼r Towing, required and optional Repairs
 
 Vorbereitung:
 
-Du benötigst zum einen Deine iRacing Customer-ID (findest Du auf der 
+Du benÃ¶tigst zum einen Deine iRacing Customer-ID (findest Du auf der 
 iRacing-Membersite unter "My Account") und zum anderen eine Firebase-Zugangsdatei
 (bekommst Du vom Teamtactics-Admin).
 
-Öffne die Datei irtactics.ini mit einem Texteditor und passe die Zeilen
+Ã–ffne die Datei irtactics.ini mit einem Texteditor und passe die Zeilen
 
 firebase = <firebase credential file> 
 
@@ -35,6 +35,3 @@ geschickt, sollten die Zeilen lauten:
 
 firebase = tactics-TeamAcme.json
 iracingId = 987654
-
-Nach dem Start erkennt das Programm selbstständig, ob Ihr allein oder im Team
-unterwegs seid. Der bisher notwendige Aufrufparameter entfällt.
