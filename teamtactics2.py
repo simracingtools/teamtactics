@@ -61,7 +61,7 @@ def check_iracing():
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
         print('irsdk disconnected')
-
+        logging.info('sim disconnected')
     elif not state.ir_connected:
         # Check if a dump file should be used to startup IRSDK
         if config.has_option('global', 'simulate'):
@@ -77,7 +77,7 @@ def check_iracing():
             # Check need and open serial connection
 
             print('irsdk connected')
-
+            logging.info('sim connected')
             checkSessionChange()
 
             collectionName = syncState.getCollectionName(ir)
@@ -111,7 +111,7 @@ def checkSessionChange():
 
         state.updateRunningDriver(ir)
         connector.updatePostUrl(config, state.runningTeam)
-        
+
         if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
@@ -128,7 +128,7 @@ def checkSessionChange():
             sessionData = sessionInfo.sessionDataMessage()
             
             connector.publish(sessionData)
-            
+
 
 # our main loop, where we retrieve data
 # and do something useful with it
