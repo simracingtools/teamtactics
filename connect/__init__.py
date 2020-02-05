@@ -29,6 +29,7 @@ __license__ = "GPLv3"
 __status__ = "Beta"
 #__version__ = "0.5"
 
+import logging
 import sys
 import requests
 from google.cloud import firestore
@@ -66,6 +67,7 @@ class Connector:
         try:
             col_ref = self.firestore.collection(collectionName)
             col_ref.document(documentName).set(documentData)
+            logging.info(documentName + '(' + documentData + ')')
         except Exception as ex:
             print('Unable to write ' + documentName + ': ' + str(ex))
 
@@ -101,6 +103,7 @@ class Connector:
         try:
             if self.postUrl != '':
                 requests.post(self.postUrl, json=jsonData)
+                logging.info(jsonData)
             else:
                 self.publisher.publish(self.messageTopic, data=str(jsonData).encode('utf-8'))
         except Exception as ex:
