@@ -67,7 +67,7 @@ class Connector:
         try:
             col_ref = self.firestore.collection(collectionName)
             col_ref.document(documentName).set(documentData)
-            logging.info(documentName + '(' + documentData + ')')
+            logging.info(documentName + '(' + str(documentData) + ')')
         except Exception as ex:
             print('Unable to write ' + documentName + ': ' + str(ex))
 

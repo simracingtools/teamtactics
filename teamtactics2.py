@@ -251,6 +251,10 @@ if __name__ == '__main__':
 
     if config.has_option('global', 'iracingId'):
         iracingId = config['global']['iracingId']
+        if iracingId == '':
+            print('option iRacingId is not set')
+            sys.exit(1)
+        
         print('iRacing ID: ' + str(iracingId))
     else:
         print('option iRacingId not configured or irtactics.ini not found')

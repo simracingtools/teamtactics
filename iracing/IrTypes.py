@@ -161,7 +161,7 @@ class SyncState:
             self.sessionId = dict['sessionId']
             self.subSessionId = dict['subSessionId']
             self.sessionNum = dict['sessionNum']
-            if driver != '':
+            if driver == '':
                 self.currentDriver = dict['currentDriver']
             else:
                 self.currentDriver = driver
