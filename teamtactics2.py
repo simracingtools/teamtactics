@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.97"
+__version__ = "0.98"
 
 import sys
 import configparser
@@ -80,12 +80,6 @@ def check_iracing():
             logging.info('sim connected')
             checkSessionChange()
 
-            collectionName = syncState.getCollectionName(ir)
-            if state.sessionType == 'single':
-                print('Single session, deleting all data in collection ' + collectionName)
-                connector.clearCollection(collectionName)
-
-
 def checkDriver():
     currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
@@ -93,31 +87,18 @@ def checkDriver():
         print('Driver change: ' + currentDriver)
         state.updateRunningDriver(ir)
 
-        # sync state on self driving
-        if state.itsMe(iracingId):
-            collectionName = syncState.getCollectionName(ir)
-            doc = connector.getDocument(collectionName, 'State')
-            
-            if doc is not None:
-                print('Sync state on driver change')
-                syncState.fromDict(doc, currentDriver)
-                if debug:
-                    print('State: ' + str(doc))
-            else:
-                print('No state in ' + collectionName)
-
 def checkSessionChange():
-    if syncState.updateSession(ir):
+    if state.updateSession(ir):
 
         state.updateRunningDriver(ir)
         connector.updatePostUrl(config, state.runningTeam)
 
-        if syncState.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
+        if state.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
             state.sessionType = 'team'
 
-        collectionName = syncState.getCollectionName(ir)
+        collectionName = state.getCollectionName(ir)
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
@@ -131,6 +112,12 @@ def checkSessionChange():
             sessionData = sessionInfo.sessionDataMessage()
             
             connector.publish(sessionData)
+
+def syncDriverData():
+    resp = connector.publish(syncState.syncDataMessage(ir, iracingId))
+    if syncState.syncTeamData(resp):
+        print('Sync: ' + str(syncState.toDict()))
+
 
 
 # our main loop, where we retrieve data
@@ -157,8 +144,10 @@ def loop():
 
     # check for pit enter/exit
     syncState.updatePits(state, ir)
-    
-    collectionName = syncState.getCollectionName(ir)
+    if state.tick % 10 == 0:
+        syncDriverData()
+
+#    collectionName = state.getCollectionName(ir)
 
     if lap > state.lap and lastLaptime != syncState.lastLaptime:
     #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
@@ -180,31 +169,10 @@ def loop():
             connector.publish(lapmsg)
             if debug:
                 print(lapdata.toDict())
-
-            connector.putDocument(collectionName, 'State', syncState.toDict())
-
     else:
         checkSessionChange()
         if state.itsMe(iracingId) and runData.update(ir):
-            print(runData.toDict())
             connector.publish(runData.runDataMessage())
-
-        doc = connector.getDocument(collectionName, 'State')
-        
-        if doc is not None:
-            if debug:
-                data = doc.to_dict()
-                print('State: ' + str(data))
-        else:
-            if debug:
-                print('No state document found - providing it')
-
-            connector.putDocument(collectionName, 'State', syncState.toDict())
-            
-    # publish session time and configured telemetry values every minute
-    
-    # read and publish configured telemetry values every second - but only
-    # if the value has changed in telemetry
 
 def banner():
     print("=============================")
@@ -238,16 +206,11 @@ if __name__ == '__main__':
         os.environ['http_proxy'] = proxyUrl
         os.environ['https_proxy'] = proxyUrl
 
-    if config.has_option('connect', 'googleAccessToken'):
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './' + str(config['connect']['googleAccessToken'])
-        if debug:
-            print('Use Google Credential file ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
-
-        try:
-            connector = connect.Connector(config)
-        except Exception as ex:
-            print('Unable to connect to Google infrastructure: ' + str(ex))
-            sys.exit(1)
+    try:
+        connector = connect.Connector(config)
+    except Exception as ex:
+        print('Unable to connect to Google infrastructure: ' + str(ex))
+        sys.exit(1)
 
     if config.has_option('global', 'logfile'):
         logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
@@ -268,7 +231,6 @@ if __name__ == '__main__':
     state = LocalState()
     syncState = SyncState()
     runData = RunData()
-    # Project ID is determined by the GCLOUD_PROJECT environment variable
 
     while True:
         try:

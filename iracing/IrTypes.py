@@ -26,7 +26,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.97"
+__version__ = "0.98"
 
 from distutils.log import info
 
@@ -43,6 +43,9 @@ class LocalState:
     driverIdx = -1
     runningDriverId = ''
     runningTeam = ''
+    sessionId = -1
+    subSessionId = -1
+    sessionNum = -1
 
     def reset(self):
         self.date_time = -1
@@ -52,11 +55,46 @@ class LocalState:
         self.sessionType = ''
         self.driverIdx = -1
         self.runningDriverId = ''
+        self.sessionId = -1
+        self.subSessionId = -1
+        self.sessionNum = -1
 
     def updateRunningDriver(self, ir):
         self.driverIdx = ir['DriverInfo']['DriverCarIdx']
         self.runningDriverId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserID'])
         self.runningTeam = str(ir['DriverInfo']['Drivers'][self.driverIdx]['TeamName']).replace(' ', '')
+
+    def updateSession(self, ir):
+        _sessionChanged = False
+
+        if self.sessionId != ir['WeekendInfo']['SessionID']:
+            print('SessionId change from ' + str(self.sessionId) + ' to ' + str(ir['WeekendInfo']['SessionID']))
+            self.sessionId = ir['WeekendInfo']['SessionID']
+            _sessionChanged = True
+
+        if self.subSessionId != ir['WeekendInfo']['SubSessionID']:
+            print('SubSessionId change from ' + str(self.subSessionId) + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
+            self.subSessionId = ir['WeekendInfo']['SubSessionID']
+            _sessionChanged = True
+
+        if self.sessionNum != ir['SessionNum']:
+            print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(ir['SessionNum']))
+            self.sessionNum = ir['SessionNum']
+            _sessionChanged = True
+
+        return _sessionChanged
+
+    def getCollectionName(self, ir):
+        _driverIdx = ir['DriverInfo']['DriverCarIdx']
+        teamName = ir['DriverInfo']['Drivers'][_driverIdx]['TeamName']
+
+        if self.sessionId == 0 or ir['DriverInfo']['Drivers'][_driverIdx]['TeamID'] == 0:
+            # single session
+            car = ir['DriverInfo']['Drivers'][_driverIdx]['CarPath']
+            return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(self.sessionNum)
+        else:
+            # team session
+            return str(teamName) + '@' + str(self.sessionId) + '#' + str(self.subSessionId) + '#' + str(self.sessionNum)
 
     def itsMe(self, iracingId):
         if self.runningDriverId == iracingId:
@@ -110,9 +148,6 @@ class SyncState:
     exitPits = 0
     stopMoving = 0
     startMoving = 0
-    sessionId = -1
-    subSessionId = -1
-    sessionNum = -1
     currentDriver = ''
     trackLocation = -1
     serviceFlags = 0
@@ -120,26 +155,6 @@ class SyncState:
     pitOptRepairLeft = 0
     towTime = 0
     pitState = ''
-
-    def updateSession(self, ir):
-        _sessionChanged = False
-
-        if self.sessionId != ir['WeekendInfo']['SessionID']:
-            print('SessionId change from ' + str(self.sessionId) + ' to ' + str(ir['WeekendInfo']['SessionID']))
-            self.sessionId = ir['WeekendInfo']['SessionID']
-            _sessionChanged = True
-
-        if self.subSessionId != ir['WeekendInfo']['SubSessionID']:
-            print('SubSessionId change from ' + str(self.subSessionId) + ' to ' + str(ir['WeekendInfo']['SubSessionID']))
-            self.subSessionId = ir['WeekendInfo']['SubSessionID']
-            _sessionChanged = True
-
-        if self.sessionNum != ir['SessionNum']:
-            print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(ir['SessionNum']))
-            self.sessionNum = ir['SessionNum']
-            _sessionChanged = True
-
-        return _sessionChanged
 
     def updateDriver(self, driver):
         if self.currentDriver != driver:
@@ -158,9 +173,6 @@ class SyncState:
             self.exitPits = dict['exitPits']
             self.stopMoving = dict['stopMoving']
             self.startMoving = dict['startMoving']
-            self.sessionId = dict['sessionId']
-            self.subSessionId = dict['subSessionId']
-            self.sessionNum = dict['sessionNum']
             if driver == '':
                 self.currentDriver = dict['currentDriver']
             else:
@@ -182,9 +194,6 @@ class SyncState:
         _syncState['exitPits'] = self.exitPits
         _syncState['stopMoving'] = self.stopMoving
         _syncState['startMoving'] = self.startMoving
-        _syncState['sessionId'] = self.sessionId
-        _syncState['subSessionId'] = self.subSessionId
-        _syncState['sessionNum'] = self.sessionNum
         _syncState['currentDriver'] = self.currentDriver
         _syncState['serviceFlags'] = self.serviceFlags
         _syncState['pitRepairLeft'] = self.pitRepairLeft
@@ -194,18 +203,6 @@ class SyncState:
 
         return _syncState
     
-    def getCollectionName(self, ir):
-        _driverIdx = ir['DriverInfo']['DriverCarIdx']
-        teamName = ir['DriverInfo']['Drivers'][_driverIdx]['TeamName']
-
-        if self.sessionId == 0 or ir['DriverInfo']['Drivers'][_driverIdx]['TeamID'] == 0:
-            # single session
-            car = ir['DriverInfo']['Drivers'][_driverIdx]['CarPath']
-            return str(teamName) + '@' + str(car) + '#' + ir['WeekendInfo']['TrackName'] + '#' + str(self.sessionNum)
-        else:
-            # team session
-            return str(teamName) + '@' + str(self.sessionId) + '#' + str(self.subSessionId) + '#' + str(self.sessionNum)
-
     def updatePits(self, state, ir):
         if self.lap <= 1:
             # dont count starting from box as pitstop
@@ -231,25 +228,24 @@ class SyncState:
             # check only if no OffTrack and no NotInWorld
             self.trackLocation = _trackLocation
 
-            if self.pitState == '' and (_trackLocation == 2 or _trackLocation == 1):
-                print('Enter pits: ' + str(_sessionTime))
+            if self.pitState == '' and _trackLocation == 2:
                 self.enterPits = _sessionTime / 86400
                 self.serviceFlags = ir['PitSvFlags']
                 self.pitState = 'ENTER'
             elif self.pitState == 'ENTER' and _trackLocation == 1:
-                print('Stop moving: ' + str(_sessionTime))
                 self.stopMoving = _sessionTime / 86400
                 self.pitState = 'SERVICE'
             elif self.pitState == 'SERVICE' and _trackLocation == 2:
-                print('Start moving: ' + str(_sessionTime))
                 self.startMoving = _sessionTime / 86400
                 self.pitState = 'EXIT'
             elif self.pitState == 'EXIT' and _trackLocation == 3:
-                print('Exit pits: ' + str(_sessionTime))
                 self.exitPits = _sessionTime / 86400
+                self.pitState = 'COMPLETE'
 
                 self.stintCount += 1
                 self.stintLap = 0
+
+            print(self.pitState + ": " + str(_sessionTime))
 
     def isPitopComplete(self):
         if self.enterPits > 0 and self.exitPits > 0:
@@ -280,7 +276,7 @@ class SyncState:
 
     def pitstopData(self):
         _pitstopData = {}
-        _pitstopData['stint'] = self.stintCount - 1
+        _pitstopData['stint'] = self.stintCount
         _pitstopData['lap'] = self.lap
         _pitstopData['driver'] = self.currentDriver
         _pitstopData['enterPits'] = self.enterPits
@@ -296,6 +292,69 @@ class SyncState:
 
     def pitstopDataMessage(self):
         return json.dumps(toMessageJson('pitstop', self.pitstopData()))
+
+    def syncData(self, ir, iRacingId):
+        _syncData = self.pitstopData()
+        _syncData['irid'] = iRacingId
+        _syncData['sessionTime'] = ir['SessionTime']  / 86400
+
+        _driverIdx = ir['DriverInfo']['DriverCarIdx']
+        _syncData['isInCar'] = (iRacingId == str(ir['DriverInfo']['Drivers'][_driverIdx]['UserID']))
+
+        return _syncData
+
+    def syncDataMessage(self, ir, iRacingId):
+        return json.dumps(toMessageJson('syncData', self.syncData(ir, iRacingId)))
+
+    def syncTeamData(self, syncData):
+        if not syncData['isInCar']:
+            _changed = False
+
+            if self.stintCount != syncData['stint']:
+                self.stintCount = syncData['stint']
+                _changed = True
+
+            if self.enterPits != syncData['enterPits']:
+                self.enterPits = syncData['enterPits']
+                _changed = True
+                if self.enterPits > 0:
+                    self.pitState = 'ENTER'
+
+            if self.stopMoving != syncData['stopMoving']:
+                self.stopMoving = syncData['stopMoving']
+                _changed = True
+                if self.stopMoving > 0:
+                    self.pitState = 'SERVICE'
+
+            if self.startMoving != syncData['startMoving']:
+                self.startMoving = syncData['startMoving']
+                _changed = True
+                if self.startMoving > 0:
+                    self.pitState = 'EXIT'
+
+            if self.exitPits != syncData['exitPits']:
+                self.exitPits = syncData['exitPits']
+                _changed = True
+                if self.exitPits > 0:
+                    self.pitState = 'COMPLETE'
+
+            if self.pitRepairLeft != syncData['repairLeft']:
+                self.pitRepairLeft = syncData['repairLeft']
+                _changed = True
+            if self.pitOptRepairLeft != syncData['optRepairLeft']:
+                self.pitOptRepairLeft = syncData['optRepairLeft']
+                _changed = True
+            if self.towTime != syncData['towTime']:
+                self.towTime = syncData['towTime']
+                _changed = True
+
+            return _changed
+        else:
+            if syncData['stintFix'] > 0:
+                self.stintCount = syncData['stintFix']
+                return True
+
+            return False
 
 class SessionInfo:
     version = __version__

@@ -102,8 +102,11 @@ class Connector:
     def publish(self, jsonData):
         try:
             if self.postUrl != '':
-                requests.post(self.postUrl, json=jsonData)
-                logging.info(jsonData)
+#                logging.info(jsonData)
+                response = requests.post(self.postUrl, json=jsonData, timeout=10.0)
+#                logging.info(str(response.status_code) + ': ' + response.content())
+#                print(response.json())
+                return response.json()
             else:
                 self.publisher.publish(self.messageTopic, data=str(jsonData).encode('utf-8'))
         except Exception as ex:
