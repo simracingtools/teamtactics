@@ -120,7 +120,7 @@ https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution
 
 Run
 
-    pyinstaller --clean -F teamtactics.py
+    pyinstaller --clean -F teamtactics2.py
 
 ## Todo
 python cloudiot_mqtt_example.py --registry_id=iRacing --cloud_region=europe-west1 --device_id=FBP-Team-Orange --algorithm=RS256 --private_key_file=fbp_member_private.pem --ca_certs roots.pem --project_id=iracing-team-tactics

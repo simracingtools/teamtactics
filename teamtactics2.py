@@ -121,6 +121,9 @@ def checkSessionChange():
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
+        syncState.stintCount = 0
+        syncState.stintLap = 0
+
         if state.itsMe(iracingId):
             sessionInfo = SessionInfo(collectionName, ir)
             
