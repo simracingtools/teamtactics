@@ -43,8 +43,8 @@ class Connector:
     
     def __init__(self, config):
         print('Initializing connector')
-        self.firestore = firestore.Client()
-        self.publisher = pubsub_v1.PublisherClient()
+        #self.firestore = firestore.Client()
+        #self.publisher = pubsub_v1.PublisherClient()
 
         if config.has_option('connect', 'messageTopic'):
             self.messageTopic = str(config['connect']['messageTopic'])
