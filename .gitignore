@@ -1,5 +1,6 @@
 /irtactics.log
 /*.json
+/roots.pem
 /__pycache__/
 /iracing/__pycache__/
 /connect/__pycache__/
