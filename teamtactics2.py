@@ -160,8 +160,8 @@ def loop():
         if state.itsMe(iracingId):
             if syncState.isPitopComplete():
                 pitstopData = syncState.pitstopDataMessage()
-                print(syncState.pitstopData())
-                logging.info(syncState.pitstopData())
+                print(pitstopData)
+                logging.info(pitstopData)
                 connector.publish(pitstopData)
                 syncState.resetPitstop()
                 
