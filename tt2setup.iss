@@ -5,7 +5,7 @@
 #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
-#define MyAppVersion "0.99"
+#define MyAppVersion "1.0"
 #define MyAppPublisher "Bausdorf engineering"
 #define MyAppURL "https://github.com/robbyb67/simracing/tree/master/team-tactics"
 #define MyAppExeName "teamtactics2.exe"
@@ -32,6 +32,7 @@ OutputDir={#ProjectBaseDir}\dist
 OutputBaseFilename=TeamTactics2Setup
 Compression=lzma
 SolidCompression=yes
+SetupIconFile={#ProjectBaseDir}\dist\tesseract-colored.ico
 WizardStyle=modern
 
 [Languages]
@@ -43,14 +44,16 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#ProjectBaseDir}\dist\teamtactics2.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#ProjectBaseDir}\dist\tesseract-colored.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#ProjectBaseDir}\dist\teamtactics2.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\dist\irtactics.ini"; DestDir: "{app}"; Flags: ignoreversion comparetimestamp
 Source: "{#ProjectBaseDir}\dist\liesmich.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\teamtactics2.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\teamtactics2.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\irtactics.ini"; Description: "Edit configuration"; Flags: postinstall shellexec waituntilterminated skipifsilent
