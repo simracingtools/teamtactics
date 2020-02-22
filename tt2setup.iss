@@ -11,6 +11,7 @@
 #define MyAppExeName "teamtactics2.exe"
 
 [Setup]
+SourceDir={#ProjectBaseDir}
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{EBE69E27-FCE2-4433-B53E-A2C07A396E73}
@@ -34,6 +35,7 @@ Compression=lzma
 SolidCompression=yes
 SetupIconFile={#ProjectBaseDir}\dist\tesseract-colored.ico
 WizardStyle=modern
+WizardImageFile=bausdorfengineering.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
