@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "1.0"
+__version__ = "1.01"
 
 import sys
 import configparser
@@ -104,6 +104,7 @@ def checkSessionChange():
 
         syncState.stintCount = 0
         syncState.stintLap = 0
+        syncState.resetPitstop()
 
         if state.itsMe(iracingId):
             sessionInfo = SessionInfo(collectionName, ir)
