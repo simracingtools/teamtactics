@@ -40,14 +40,6 @@ A client which makes use of this data is subject of another project.
 	[DEFAULT]
 	
 	[global]
-	# Firebase access credentials. This file has to be provided
-	# by the Google Firestore owner. It has to placed in the same
-	# directory as teamtactics.exe
-	googleAccessToken = <firestoreCedentials.json>
-
-	# message topic at Google sub-pub hub your team uses
-	messageTopic = <your teams pub/sub topic>
-
 	# Each team member has to configure its own iRacing ID here
 	iracingId = <your iRacingId>
 	
@@ -66,6 +58,15 @@ A client which makes use of this data is subject of another project.
 	# testing/development purposes. The dump file can be created by issuing the 
 	# command 'irsdk --dump data.dmp'
 	;simulate = data/monzasunset.dump
+
+	[connect]
+	# Configure the url's post targets for your iRacing teams. The configuration key
+	# has to be the exact iRacing team name (case sensitive) excluding blanks
+	FBPRacingRED  = <team-url>
+	FBPRacingBLUE = <team-url>
+	# Fallback-URL for publishing data
+	postUrl       = noFallback
+
 
 To start a session recording:
 
@@ -113,14 +114,16 @@ The telemetry data mentioned above is collected in one document per lap - so doc
 
 ### Build
 
-
-
 Follow instructions at 
 https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution-doesnt-get-added-to-pyinstaller-build
 
 Run
 
-    pyinstaller --clean -F teamtactics2.py
+    pyinstaller --clean --icon dist/teamtactics2.ico -F teamtactics2.py
 
-## Todo
-python cloudiot_mqtt_example.py --registry_id=iRacing --cloud_region=europe-west1 --device_id=FBP-Team-Orange --algorithm=RS256 --private_key_file=fbp_member_private.pem --ca_certs roots.pem --project_id=iracing-team-tactics
+To build setup package comile
+
+	tt2setup.iss
+
+using InnoSetup compiler
+
