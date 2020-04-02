@@ -67,8 +67,6 @@ def check_iracing():
             print('starting up using dump file: ' + str(config['global']['simulate']))
         else:
             is_startup = ir.startup()
-            if debug:
-                print('DEBUG: starting up with simulation')
 
         if is_startup and ir.is_initialized and ir.is_connected:
             state.ir_connected = True
@@ -102,7 +100,8 @@ def checkSessionChange():
         if state.itsMe(iracingId):
             sessionInfo = SessionInfo(collectionName, ir)
             
-            print(sessionInfo.toDict())
+            if debug:
+                print(sessionInfo.toDict())
             sessionData = sessionInfo.sessionDataMessage(state)
             
             connector.publish(sessionData)
@@ -123,13 +122,13 @@ def loop():
     lastLaptime = 0
     if ir['LapLastLapTime'] > 0:
         lastLaptime = ir['LapLastLapTime']
-    elif debug:
-        print('no last laptime')
+    
 
     # check for driver change
     checkDriver()
 
-    if lap > state.lap and lastLaptime != state.lastLaptime:
+    if lap > state.lap:
+    #if lap > state.lap and lastLaptime != 0:
     #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
         state.lastLaptime = lastLaptime
@@ -147,9 +146,14 @@ def loop():
         if state.itsMe(iracingId):
             if runData.update(ir):
                 connector.publish(runData.runDataMessage(state))
+                if debug:
+                    print(runData.toDict())
             if eventData.updateEvent(state, ir):
                 connector.publish(eventData.eventDataMessage(state))
-        else:
+                if debug:
+                    print(eventData.toDict())
+
+        if state.tick % 3 == 0:
             connector.publish(runData.syncDataMessage(state, ir))
 
 def banner():

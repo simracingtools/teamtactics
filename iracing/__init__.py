@@ -49,21 +49,21 @@ def checkSessionFlags(sessionFlags):
     if sessionFlags & 0x00000080:
         _flags.append('CROSSED')
     if sessionFlags & 0x00000100:
-        _flags.append('YELLOW WAV')
+        _flags.append('YELLOW_WAVED')
     if sessionFlags & 0x00000200:
-        _flags.append('ONE TO GREEN')
+        _flags.append('ONE_TO_GREEN')
     if sessionFlags & 0x00000400:
-        _flags.append('GREEN HELD')
+        _flags.append('GREEN_HELD')
     if sessionFlags & 0x00000800:
-        _flags.append('TEN TO GO')
+        _flags.append('TEN_TO_GO')
     if sessionFlags & 0x00001000:
-        _flags.append('FIVE TO GO')
+        _flags.append('FIVE_TO_GO')
     if sessionFlags & 0x00002000:
-        _flags.append('RANDOM WAV')
+        _flags.append('RANDOM_WAVED')
     if sessionFlags & 0x00004000:
         _flags.append('CAUTION')
     if sessionFlags & 0x00008000:
-        _flags.append('CAUTION WAV')
+        _flags.append('CAUTION_WAVED')
     if sessionFlags & 0x00010000:
         _flags.append('BLACK')
     if sessionFlags & 0x00020000:
@@ -75,10 +75,10 @@ def checkSessionFlags(sessionFlags):
     if sessionFlags & 0x0010000:
         _flags.append('REPAIR')
     if sessionFlags & 0x10000000:
-        _flags.append('START HIDDEN')
+        _flags.append('START_HIDDEN')
     if sessionFlags & 0x20000000:
-        _flags.append('START READY')
+        _flags.append('START_READY')
     if sessionFlags & 0x40000000:
-        _flags.append('START SET')
+        _flags.append('START_SET')
 
     return _flags

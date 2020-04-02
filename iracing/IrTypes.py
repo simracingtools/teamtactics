@@ -49,6 +49,7 @@ class LocalState:
     teamId = ''
     sessionId = -1
     subSessionId = -1
+    collectionName = ''
     sessionNum = -1
     lastLaptime = 0
 
@@ -64,6 +65,7 @@ class LocalState:
         self.sessionId = -1
         self.subSessionId = -1
         self.sessionNum = -1
+        self.collectionName = ''
         self.clientId = ''
         self.teamId = ''
         self.lastLaptime = 0
@@ -92,6 +94,9 @@ class LocalState:
             print('SessionNum change from ' + str(self.sessionNum) + ' to ' + str(ir['SessionNum']))
             self.sessionNum = ir['SessionNum']
             _sessionChanged = True
+
+        if _sessionChanged:
+            self.collectionName = self.getCollectionName(ir)
 
         return _sessionChanged
 
@@ -127,7 +132,7 @@ class LapData:
         self.lap = ir['Lap']
         self.fuelLevel = ir['FuelLevel']
         self.trackTemp = ir['TrackTemp']
-        self.sessionTime = ir['SessionTime'] / 86400
+        self.sessionTime = ir['SessionTime']
         self.laptime = ir['LapLastLapTime']
         self.driver = currentDriver
 
@@ -135,7 +140,7 @@ class LapData:
         _lapdata = {}
         _lapdata['lap'] = self.lap
         _lapdata['driver'] = self.driver
-        _lapdata['laptime'] = self.laptime / 86400
+        _lapdata['laptime'] = self.laptime
         _lapdata['fuelLevel'] = self.fuelLevel
         _lapdata['trackTemp'] = self.trackTemp
         _lapdata['sessionTime'] = self.sessionTime
@@ -217,7 +222,7 @@ class RunData:
         _dict['fuelLevel'] = self.fuelLevel
         _dict['flags'] = iracing.checkSessionFlags(self.flags)
         _dict['sessionTime'] = self.sessionTime
-        _dict['estLaptime'] = self.estLaptime / 86400
+        _dict['estLaptime'] = self.estLaptime
 
         return _dict
 
@@ -235,7 +240,7 @@ class RunData:
         return _syncData
 
     def syncDataMessage(self, state, ir):
-        return json.dumps(toMessageJson('syncData', state, syncData(ir, state)))
+        return json.dumps(toMessageJson('syncData', state, self.syncData(ir, state)))
 
 class EventData:
     sessionTime = 0.0
@@ -273,13 +278,13 @@ class EventData:
         return _dict
 
     def eventDataMessage(self, state):
-        return toMessageJson('event', state, self.toDict())
+        return json.dumps(toMessageJson('event', state, self.toDict()))
 
 def toMessageJson(type, state, payload):
     _msg = {}
     _msg['type'] = type
     _msg['version'] = __version__
-    _msg['sessionId'] = state.sessionId
+    _msg['sessionId'] = state.collectionName
     _msg['teamId'] = state.teamId
     _msg['clientId'] = state.clientId
     _msg['payload'] = payload
