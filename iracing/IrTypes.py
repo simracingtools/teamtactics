@@ -26,13 +26,14 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "0.98"
+__version__ = "1.20"
 
 from distutils.log import info
 
 import irsdk
 import json
 import iracing
+import logging
 
 class LocalState:
     ir_connected = False
@@ -42,10 +43,14 @@ class LocalState:
     sessionType = ''
     driverIdx = -1
     runningDriverId = ''
+    runningDriverName = ''
     runningTeam = ''
+    clientId = ''
+    teamId = ''
     sessionId = -1
     subSessionId = -1
     sessionNum = -1
+    lastLaptime = 0
 
     def reset(self):
         self.date_time = -1
@@ -55,13 +60,19 @@ class LocalState:
         self.sessionType = ''
         self.driverIdx = -1
         self.runningDriverId = ''
+        self.runningDriverName = ''
         self.sessionId = -1
         self.subSessionId = -1
         self.sessionNum = -1
+        self.clientId = ''
+        self.teamId = ''
+        self.lastLaptime = 0
 
     def updateRunningDriver(self, ir):
         self.driverIdx = ir['DriverInfo']['DriverCarIdx']
         self.runningDriverId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserID'])
+        self.runningDriverName = str(ir['DriverInfo']['Drivers'][self.driverIdx]['UserName'])
+        self.teamId = str(ir['DriverInfo']['Drivers'][self.driverIdx]['TeamID'])
         self.runningTeam = str(ir['DriverInfo']['Drivers'][self.driverIdx]['TeamName']).replace(' ', '')
 
     def updateSession(self, ir):
@@ -112,21 +123,17 @@ class LapData:
     trackTemp = 0
     sessionTime = 0
 
-    def __init__(self, syncState, ir):
+    def __init__(self, currentDriver, ir):
         self.lap = ir['Lap']
-        self.stintLap = syncState.stintLap
-        self.stintCount = syncState.stintCount
         self.fuelLevel = ir['FuelLevel']
         self.trackTemp = ir['TrackTemp']
         self.sessionTime = ir['SessionTime'] / 86400
         self.laptime = ir['LapLastLapTime']
-        self.driver = syncState.currentDriver
+        self.driver = currentDriver
 
     def toDict(self):
         _lapdata = {}
         _lapdata['lap'] = self.lap
-        _lapdata['stintLap'] = self.stintLap
-        _lapdata['stintCount'] = self.stintCount
         _lapdata['driver'] = self.driver
         _lapdata['laptime'] = self.laptime / 86400
         _lapdata['fuelLevel'] = self.fuelLevel
@@ -135,229 +142,12 @@ class LapData:
 
         return _lapdata
 
-    def lapDataMessage(self):
-        _lapMsg = toMessageJson('lapdata', self.toDict())
+    def lapDataMessage(self, state):
+        _lapMsg = toMessageJson('lapdata', state, self.toDict())
         return json.dumps(_lapMsg)
         
-class SyncState:
-    lap = 0
-    lastLaptime = 0
-    stintCount = 0
-    stintLap = 0
-    enterPits = 0
-    exitPits = 0
-    stopMoving = 0
-    startMoving = 0
-    currentDriver = ''
-    trackLocation = -1
-    serviceFlags = 0
-    pitRepairLeft = 0
-    pitOptRepairLeft = 0
-    towTime = 0
-    pitState = ''
-
-    def updateDriver(self, driver):
-        if self.currentDriver != driver:
-            self.currentDriver = driver
-            return True
-
-        return False
-        
-    def fromDict(self, dict, driver = ''):
-        try:
-            self.lap = dict['lap']
-            self.lastLaptime = dict['lapTime']
-            self.stintCount = dict['stintCount']
-            self.stintLap = dict['stintLap']
-            self.enterPits = dict['enterPits']
-            self.exitPits = dict['exitPits']
-            self.stopMoving = dict['stopMoving']
-            self.startMoving = dict['startMoving']
-            if driver == '':
-                self.currentDriver = dict['currentDriver']
-            else:
-                self.currentDriver = driver
-            self.pitRepairLeft = dict['pitRepairLeft']
-            self.pitOptRepairLeft = dict['pitOptRepairLeft']
-            self.towTime = dict['towTime']
-            self.pitState = dict['pitState']
-        except Exception as ex:
-            print('Problem: ' + str(ex))
-    
-    def toDict(self):
-        _syncState = {}
-        _syncState['lap'] = self.lap
-        _syncState['lapTime'] = self.lastLaptime
-        _syncState['stintCount'] = self.stintCount
-        _syncState['stintLap'] = self.stintLap
-        _syncState['enterPits'] = self.enterPits
-        _syncState['exitPits'] = self.exitPits
-        _syncState['stopMoving'] = self.stopMoving
-        _syncState['startMoving'] = self.startMoving
-        _syncState['currentDriver'] = self.currentDriver
-        _syncState['serviceFlags'] = self.serviceFlags
-        _syncState['pitRepairLeft'] = self.pitRepairLeft
-        _syncState['pitOptRepairLeft'] = self.pitOptRepairLeft
-        _syncState['towTime'] = self.towTime
-        _syncState['pitState'] = self.pitState
-
-        return _syncState
-    
-    def updatePits(self, state, ir):
-        if self.lap <= 1:
-            # dont count starting from box as pitstop
-            return
-
-        if self.pitRepairLeft == 0:
-            self.pitRepairLeft = ir['PitRepairLeft']
-
-        if self.pitOptRepairLeft == 0:
-            self.pitOptRepairLeft = ir['PitOptRepairLeft']
-
-        if self.towTime == 0:
-            self.towTime = ir['PlayerCarTowTime']
-        
-        _trackLocation = ir['CarIdxTrackSurface'][state.driverIdx]
-        _sessionTime = ir['SessionTime']
-        #irsdk_NotInWorld       -1
-        #irsdk_OffTrack          0
-        #irsdk_InPitStall        1
-        #irsdk_AproachingPits    2
-        #irsdk_OnTrack           3
-        if _trackLocation > 0 and self.trackLocation != _trackLocation:
-            # check only if no OffTrack and no NotInWorld
-            self.trackLocation = _trackLocation
-
-            if self.pitState == '' and _trackLocation == 2:
-                self.enterPits = _sessionTime / 86400
-                self.serviceFlags = ir['PitSvFlags']
-                self.pitState = 'ENTER'
-            elif self.pitState == 'ENTER' and _trackLocation == 1:
-                self.stopMoving = _sessionTime / 86400
-                self.pitState = 'SERVICE'
-            elif self.pitState == 'SERVICE' and _trackLocation == 2:
-                self.startMoving = _sessionTime / 86400
-                self.pitState = 'EXIT'
-            elif self.pitState == 'EXIT' and _trackLocation == 3:
-                self.exitPits = _sessionTime / 86400
-                self.pitState = 'COMPLETE'
-
-                self.stintCount += 1
-                self.stintLap = 0
-
-            print(self.pitState + ": " + str(_sessionTime))
-
-    def isPitopComplete(self):
-        if self.enterPits > 0 and self.exitPits > 0:
-            return True
-
-        return False
-
-    def resetPitstop(self):
-        self.enterPits = 0
-        self.exitPits = 0
-        self.stopMoving = 0
-        self.startMoving = 0
-        self.pitOptRepairLeft = 0
-        self.pitRepairLeft = 0
-        self.towTime = 0
-        self.pitState = ''
-
-    def updateLap(self, lap, laptime):
-        if self.lap != lap: # and laptime > 0:
-            _lapDelta = lap - self.lap
-            self.lap = lap
-            self.lastLaptime = laptime
-            self.stintLap += _lapDelta
-            
-        if self.stintCount == 0:
-            self.stintCount = 1
-            self.stintLap = lap
-
-    def pitstopData(self):
-        _pitstopData = {}
-        _pitstopData['stint'] = self.stintCount
-        _pitstopData['lap'] = self.lap
-        _pitstopData['driver'] = self.currentDriver
-        _pitstopData['enterPits'] = self.enterPits
-        _pitstopData['stopMoving'] = self.stopMoving
-        _pitstopData['startMoving'] = self.startMoving
-        _pitstopData['exitPits'] = self.exitPits
-        _pitstopData['serviceFlags'] = self.serviceFlags
-        _pitstopData['repairLeft'] = self.pitRepairLeft / 86400
-        _pitstopData['optRepairLeft'] = self.pitOptRepairLeft / 86400
-        _pitstopData['towTime'] = self.towTime / 86400
-
-        return _pitstopData
-
-    def pitstopDataMessage(self):
-        return json.dumps(toMessageJson('pitstop', self.pitstopData()))
-
-    def syncData(self, ir, iRacingId):
-        _syncData = self.pitstopData()
-        _syncData['irid'] = iRacingId
-        _syncData['sessionTime'] = ir['SessionTime']  / 86400
-
-        _driverIdx = ir['DriverInfo']['DriverCarIdx']
-        _syncData['isInCar'] = (iRacingId == str(ir['DriverInfo']['Drivers'][_driverIdx]['UserID']))
-
-        return _syncData
-
-    def syncDataMessage(self, ir, iRacingId):
-        return json.dumps(toMessageJson('syncData', self.syncData(ir, iRacingId)))
-
-    def syncTeamData(self, syncData):
-        if not syncData['isInCar']:
-            _changed = False
-
-            if self.stintCount != syncData['stint']:
-                self.stintCount = syncData['stint']
-                _changed = True
-
-            if self.enterPits != syncData['enterPits']:
-                self.enterPits = syncData['enterPits']
-                _changed = True
-                if self.enterPits > 0:
-                    self.pitState = 'ENTER'
-
-            if self.stopMoving != syncData['stopMoving']:
-                self.stopMoving = syncData['stopMoving']
-                _changed = True
-                if self.stopMoving > 0:
-                    self.pitState = 'SERVICE'
-
-            if self.startMoving != syncData['startMoving']:
-                self.startMoving = syncData['startMoving']
-                _changed = True
-                if self.startMoving > 0:
-                    self.pitState = 'EXIT'
-
-            if self.exitPits != syncData['exitPits']:
-                self.exitPits = syncData['exitPits']
-                _changed = True
-                if self.exitPits > 0:
-                    self.pitState = 'COMPLETE'
-
-            if self.pitRepairLeft != syncData['repairLeft']:
-                self.pitRepairLeft = syncData['repairLeft']
-                _changed = True
-            if self.pitOptRepairLeft != syncData['optRepairLeft']:
-                self.pitOptRepairLeft = syncData['optRepairLeft']
-                _changed = True
-            if self.towTime != syncData['towTime']:
-                self.towTime = syncData['towTime']
-                _changed = True
-
-            return _changed
-        else:
-            if syncData['stintFix'] > 0:
-                self.stintCount = syncData['stintFix']
-                return True
-
-            return False
 
 class SessionInfo:
-    version = __version__
     sessionId = ''
     track = ''
     sessionLaps = 0
@@ -379,12 +169,11 @@ class SessionInfo:
         self.sessionTime = ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime']
         self.sessionType = ir['SessionInfo']['Sessions'][_sessionNum]['SessionType']
         if self.sessionTime != 'unlimited':
-            self.sessionTime = float(ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime'][:-4]) / 86400
+            self.sessionTime = float(ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime'][:-4])
 
 
     def toDict(self):
         _info = {}
-        _info['version'] = self.version
         _info['track'] = self.track
         _info['sessionId'] = self.sessionId
         _info['sessionLaps'] = self.sessionLaps
@@ -396,15 +185,8 @@ class SessionInfo:
 
         return _info
 
-    def sessionDataMessage(self):
-        return json.dumps(toMessageJson('sessionInfo', self.toDict()))
-
-def toMessageJson(type, payload):
-    _msg = {}
-    _msg['type'] = type
-    _msg['payload'] = payload
-
-    return json.dumps(_msg)
+    def sessionDataMessage(self, state):
+        return json.dumps(toMessageJson('sessionInfo', state, self.toDict()))
 
 class RunData:
     fuelLevel = 0
@@ -424,7 +206,7 @@ class RunData:
             _changed = True
             self.estLaptime = ir['DriverInfo']['DriverCarEstLapTime']
 
-        self.sessionTime = ir['SessionTime'] / 86400
+        self.sessionTime = ir['SessionTime']
         if self.fuelLevel == 0:
             _changed = False
             
@@ -439,6 +221,67 @@ class RunData:
 
         return _dict
 
-    def runDataMessage(self):
-        return json.dumps(toMessageJson('runData', self.toDict()))
+    def runDataMessage(self, state):
+        return json.dumps(toMessageJson('runData', state, self.toDict()))
 
+    def syncData(self, ir, state):
+        _syncData = {}
+        _syncData['irid'] = state.clientId
+        _syncData['sessionTime'] = ir['SessionTime']
+
+        _driverIdx = ir['DriverInfo']['DriverCarIdx']
+        _syncData['isInCar'] = (state.clientId == str(ir['DriverInfo']['Drivers'][_driverIdx]['UserID']))
+
+        return _syncData
+
+    def syncDataMessage(self, state, ir):
+        return json.dumps(toMessageJson('syncData', state, syncData(ir, state)))
+
+class EventData:
+    sessionTime = 0.0
+    trackLocation = -1
+    flags = []
+    towTime = 0.0
+    repairTime = 0.0
+    optRepairTime = 0.0
+
+    def updateEvent(self, state, ir):
+        _changed = False
+        self.sessionTime = ir['SessionTime']
+        self.flags = ir['SessionFlags']
+        self.repairTime = ir['PitRepairLeft']
+        self.optRepairTime = ir['PitOptRepairLeft']
+
+        if self.towTime != ir['PlayerCarTowTime']:
+            self.towTime = ir['PlayerCarTowTime']
+            _changed = True
+
+        if self.trackLocation !=  ir['CarIdxTrackSurface'][state.driverIdx]:
+            self.trackLocation = ir['CarIdxTrackSurface'][state.driverIdx]
+            _changed = True
+
+        return _changed        
+
+    def toDict(self):
+        _dict = {}
+        _dict['sessionTime'] = self.sessionTime
+        _dict['trackLocation'] = self.trackLocation
+        _dict['flags'] = self.flags
+        _dict['towingTime'] = self.towTime
+        _dict['repairTime'] = self.repairTime
+        _dict['optRepairTime'] = self.optRepairTime
+        return _dict
+
+    def eventDataMessage(self, state):
+        return toMessageJson('event', state, self.toDict())
+
+def toMessageJson(type, state, payload):
+    _msg = {}
+    _msg['type'] = type
+    _msg['version'] = __version__
+    _msg['sessionId'] = state.sessionId
+    _msg['teamId'] = state.teamId
+    _msg['clientId'] = state.clientId
+    _msg['payload'] = payload
+
+    return json.dumps(_msg)

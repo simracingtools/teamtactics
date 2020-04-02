@@ -29,10 +29,6 @@ __license__ = "GPLv3"
 __status__ = "Beta"
 #__version__ = "0.5"
 
-from iracing.IrTypes import LapData
-from iracing.IrTypes import SyncState
-from iracing.IrTypes import SessionInfo
-
 def checkSessionFlags(sessionFlags):
     _flags = []
 
