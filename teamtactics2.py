@@ -152,9 +152,10 @@ def loop():
                 connector.publish(eventData.eventDataMessage(state))
                 if debug:
                     print(eventData.toDict())
-
-        if state.tick % 3 == 0:
-            connector.publish(runData.syncDataMessage(state, ir))
+        else:
+            # every 3 ticks
+            if state.tick % 3 == 0:
+                connector.publish(runData.syncDataMessage(state, ir))
 
 def banner():
     print("=============================")
