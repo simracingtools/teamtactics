@@ -254,8 +254,14 @@ class EventData:
         _changed = False
         self.sessionTime = ir['SessionTime']
         self.flags = ir['SessionFlags']
-        self.repairTime = ir['PitRepairLeft']
-        self.optRepairTime = ir['PitOptRepairLeft']
+    
+        if self.repairTime != ir['PitRepairLeft']:
+            self.repairTime = ir['PitRepairLeft']
+            _changed = True
+
+        if self.optRepairTime != ir['PitOptRepairLeft']:
+            self.optRepairTime = ir['PitOptRepairLeft']
+            _changed = True
 
         if self.towTime != ir['PlayerCarTowTime']:
             self.towTime = ir['PlayerCarTowTime']
