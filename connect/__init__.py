@@ -47,7 +47,7 @@ class Connector:
             print('Using Url ' + self.postUrl + ' to publish events')
 
         if config.has_option('global', 'logfile'):
-            logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
+            logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO,format='%(asctime)$%(message)s')
 
     def updatePostUrl(self, config, teamName):
         if config.has_option('connect', teamName):
@@ -58,7 +58,6 @@ class Connector:
 
     def publish(self, jsonData):
         try:
-            logging.Logger("JSON").info(jsonData)
             logging.info(jsonData)
             if self.postUrl != '':
                 response = requests.post(self.postUrl, json=jsonData, timeout=10.0)
