@@ -87,7 +87,7 @@ def checkSessionChange():
 
         state.updateRunningDriver(ir)
         connector.updatePostUrl(config, state.runningTeam)
-
+        
         if state.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
@@ -146,8 +146,6 @@ def loop():
         if state.itsMe(iracingId):
             if runData.update(ir):
                 connector.publish(runData.runDataMessage(state))
-                if debug:
-                    print(runData.toDict())
             if eventData.updateEvent(state, ir):
                 connector.publish(eventData.eventDataMessage(state))
                 if debug:
