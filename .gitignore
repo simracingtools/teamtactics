@@ -11,3 +11,4 @@
 /.vscode/
 teamtactics2.spec
 *.exe
+dist/irtactics.log
