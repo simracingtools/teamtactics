@@ -35,6 +35,7 @@ import requests
 
 class Connector:
     postUrl = ''
+    headers = {'x-teamtactics-token': 'None'}
     
     def __init__(self, config):
         print('Initializing connector')
@@ -45,22 +46,17 @@ class Connector:
             print('No Url configured, only logging events')
         elif self.postUrl != '':
             print('Using Url ' + self.postUrl + ' to publish events')
+            if config.has_option('connect', 'clientAccessToken'):
+                headers = { 'x-teamtactics-token': config['connect']['clientAccessToken']}
 
         if config.has_option('global', 'logfile'):
             logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO,format='%(asctime)s$%(message)s')
-
-    def updatePostUrl(self, config, teamName):
-        if config.has_option('connect', teamName):
-            self.postUrl = str(config['connect'][teamName])
-            print('Post URL changed for team ' + teamName + ': ' + self.postUrl)
-        else:
-            print('No change of post URL for team ' + teamName)
 
     def publish(self, jsonData):
         try:
             logging.info(jsonData)
             if self.postUrl != '':
-                response = requests.post(self.postUrl, json=jsonData, timeout=10.0)
+                response = requests.post(self.postUrl, json=jsonData, timeout=10.0, headers=headers)
                 return response.json()
 
         except Exception as ex:

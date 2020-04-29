@@ -86,7 +86,6 @@ def checkSessionChange():
     if state.updateSession(ir):
 
         state.updateRunningDriver(ir)
-        connector.updatePostUrl(config, state.runningTeam)
         
         if state.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'

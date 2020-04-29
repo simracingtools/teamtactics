@@ -26,7 +26,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "1.20"
+__version__ = "1.30"
 
 from distutils.log import info
 
@@ -161,6 +161,8 @@ class SessionInfo:
     teamName = ''
     maxFuel = 0
     car = ''
+    carId = ''
+    trackId = ''
 
     def __init__(self, sessionId, ir):
         _driverIdx = ir['DriverInfo']['DriverCarIdx']
@@ -173,6 +175,8 @@ class SessionInfo:
         self.sessionLaps = ir['SessionInfo']['Sessions'][_sessionNum]['SessionLaps']
         self.sessionTime = ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime']
         self.sessionType = ir['SessionInfo']['Sessions'][_sessionNum]['SessionType']
+        self.trackId = ir['WeekendInfo']['TrackID']
+        self.carId = ir['DriverInfo']['Drivers'][_driverIdx]['CarID']
         if self.sessionTime != 'unlimited':
             self.sessionTime = float(ir['SessionInfo']['Sessions'][_sessionNum]['SessionTime'][:-4])
 
@@ -187,6 +191,8 @@ class SessionInfo:
         _info['teamName'] = self.teamName
         _info['car'] = self.car
         _info['maxFuel'] = self.maxFuel
+        _info['carId'] = self.carId
+        _info['trackId'] = self.trackId
 
         return _info
 
@@ -197,6 +203,7 @@ class RunData:
     fuelLevel = 0
     flags = []
     sessionTime = -1
+    sessionToD = -1
     estLaptime = 0
 
     def update(self, ir):
@@ -212,6 +219,7 @@ class RunData:
             self.estLaptime = ir['DriverInfo']['DriverCarEstLapTime']
 
         self.sessionTime = ir['SessionTime']
+        self.sessionToD = ir['SessionTimeOfDay']
         if self.fuelLevel == 0:
             _changed = False
             
@@ -222,6 +230,7 @@ class RunData:
         _dict['fuelLevel'] = self.fuelLevel
         _dict['flags'] = iracing.checkSessionFlags(self.flags)
         _dict['sessionTime'] = self.sessionTime
+        _dict['sessionToD'] = self.sessionToD
         _dict['estLaptime'] = self.estLaptime
 
         return _dict
@@ -244,6 +253,7 @@ class RunData:
 
 class EventData:
     sessionTime = 0.0
+    sessionToD = 0.0
     trackLocation = -1
     flags = []
     towTime = 0.0
@@ -253,6 +263,7 @@ class EventData:
     def updateEvent(self, state, ir):
         _changed = False
         self.sessionTime = ir['SessionTime']
+        self.sessionToD = ir['SessionTimeOfDay']
         self.flags = ir['SessionFlags']
     
         if self.repairTime != ir['PitRepairLeft']:
@@ -276,6 +287,7 @@ class EventData:
     def toDict(self):
         _dict = {}
         _dict['sessionTime'] = self.sessionTime
+        _dict['sessionToD'] = self.sessionToD
         _dict['trackLocation'] = self.trackLocation
         _dict['flags'] = self.flags
         _dict['towingTime'] = self.towTime
