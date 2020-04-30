@@ -5,7 +5,7 @@
 #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
-#define MyAppVersion "1.01"
+#define MyAppVersion "2.00"
 #define MyAppPublisher "Bausdorf engineering"
 #define MyAppURL "https://github.com/robbyb67/simracing/tree/master/team-tactics"
 #define MyAppExeName "teamtactics2.exe"
@@ -24,8 +24,11 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
+DefaultUserInfoName=
+DefaultUserInfoOrg=
+UsePreviousUserInfo=yes
 AllowNoIcons=yes
-InfoAfterFile={#ProjectBaseDir}\LICENSE
+LicenseFile={#ProjectBaseDir}\LICENSE
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
@@ -34,12 +37,21 @@ OutputBaseFilename=TeamTactics2Setup
 Compression=lzma
 SolidCompression=yes
 SetupIconFile={#ProjectBaseDir}\dist\tesseract-colored.ico
+UserInfoPage=yes
 WizardStyle=modern
 WizardImageFile=bausdorfengineering.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+
+[Messages]
+UserInfoName=&iRacing ID:
+UserInfoOrg=&Client access token:
+
+[INI]
+Filename: "{app}\irtactics.ini"; Section: "global"; Key: "iracingId"; String: "{userinfoname}"
+Filename: "{app}\irtactics.ini"; Section: "connect"; Key: "clientAccessToken"; String: "{userinfoorg}"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -58,5 +70,4 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\teamtactics2.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\irtactics.ini"; Description: "Edit configuration"; Flags: postinstall shellexec waituntilterminated skipifsilent
 Filename: "{app}\teamtactics2.exe"; Description: "Launch application"; Flags: postinstall nowait skipifsilent

@@ -32,83 +32,33 @@ __status__ = "Beta"
 import logging
 import sys
 import requests
-from google.cloud import firestore
-from google.cloud import pubsub_v1
 
 class Connector:
-    firestore = None
-    publisher = None
-    messageTopic = ''
     postUrl = ''
+    headers = {'x-teamtactics-token': 'None'}
     
     def __init__(self, config):
         print('Initializing connector')
-        #self.firestore = firestore.Client()
-        #self.publisher = pubsub_v1.PublisherClient()
-
-        if config.has_option('connect', 'messageTopic'):
-            self.messageTopic = str(config['connect']['messageTopic'])
-
         if config.has_option('connect', 'postUrl'):
             self.postUrl = str(config['connect']['postUrl'])
     
-        if self.postUrl == '' and self.messageTopic == '':
-            print('At least one option out of messageTopic and postUrl has to be configured, exiting')
-            sys.exit(1)
-        elif  self.postUrl != '' and self.messageTopic != '':
-            print('At most one option out of messageTopic and postUrl has to be configured, exiting')
-            sys.exit(1)
+        if self.postUrl == '':
+            print('No Url configured, only logging events')
         elif self.postUrl != '':
-            print('using postUrl ' + self.postUrl + ' to publish events')
-        elif self.messageTopic != '':
-            print('using messageTopic ' + self.messageTopic + ' to publish events')  
+            print('Using Url ' + self.postUrl + ' to publish events')
+            if config.has_option('connect', 'clientAccessToken'):
+                self.headers = { 'x-teamtactics-token': config['connect']['clientAccessToken'], 'Content-Type': 'application/json'}
 
-    def putDocument(self, collectionName, documentName, documentData):
-        try:
-            col_ref = self.firestore.collection(collectionName)
-            col_ref.document(documentName).set(documentData)
-            logging.info(documentName + '(' + str(documentData) + ')')
-        except Exception as ex:
-            print('Unable to write ' + documentName + ': ' + str(ex))
-
-    def clearCollection(self, collectionName):
-        col_ref = self.firestore.collection(collectionName)
-        try:
-            docs = list(col_ref.stream())
-            if len(docs) > 0:
-                for doc in docs:
-                    doc.reference.delete()
-            
-        except Exception as ex:
-            print('Firestore error: ' + str(ex))
-
-    def getDocument(self, collectionName, documentName):
-        doc = self.firestore.collection(collectionName).document(documentName).get()
-        _docDict = None
-        if doc.exists:
-            _docDict = doc.to_dict()
-        else:
-            print('No ' + documentName + ' in ' + collectionName)
-
-        return _docDict
-
-    def updatePostUrl(self, config, teamName):
-        if config.has_option('connect', teamName):
-            self.postUrl = str(config['connect'][teamName])
-            print('Post URL changed for team ' + teamName + ': ' + self.postUrl)
-        else:
-            print('No change of post URL for team ' + teamName)
+        if config.has_option('global', 'logfile'):
+            logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO,format='%(asctime)s$%(message)s')
 
     def publish(self, jsonData):
         try:
+            logging.info(jsonData)
             if self.postUrl != '':
-#                logging.info(jsonData)
-                response = requests.post(self.postUrl, json=jsonData, timeout=10.0)
-#                logging.info(str(response.status_code) + ': ' + response.content())
-#                print(response.json())
-                return response.json()
-            else:
-                self.publisher.publish(self.messageTopic, data=str(jsonData).encode('utf-8'))
+                response = requests.post(self.postUrl, data=jsonData, headers=self.headers, timeout=10.0)
+                return response
+
         except Exception as ex:
             print('Unable to publish data: ' + str(ex))
 

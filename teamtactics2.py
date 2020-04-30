@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "1.01"
+__version__ = "2.00"
 
 import sys
 import configparser
@@ -37,17 +37,16 @@ import irsdk
 import os
 import time
 import json
-import logging
 
 from datetime import datetime
 from datetime import timedelta
 
 import connect
-from iracing.IrTypes import SyncState
 from iracing.IrTypes import LapData
 from iracing.IrTypes import SessionInfo
 from iracing.IrTypes import LocalState
 from iracing.IrTypes import RunData
+from iracing.IrTypes import EventData
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -61,7 +60,6 @@ def check_iracing():
         # we are shut down ir library (clear all internal variables)
         ir.shutdown()
         print('irsdk disconnected')
-        logging.info('sim disconnected')
     elif not state.ir_connected:
         # Check if a dump file should be used to startup IRSDK
         if config.has_option('global', 'simulate'):
@@ -69,21 +67,18 @@ def check_iracing():
             print('starting up using dump file: ' + str(config['global']['simulate']))
         else:
             is_startup = ir.startup()
-            if debug:
-                print('DEBUG: starting up with simulation')
 
         if is_startup and ir.is_initialized and ir.is_connected:
             state.ir_connected = True
-            # Check need and open serial connection
+            state.clientId = iracingId
 
             print('irsdk connected')
-            logging.info('sim connected')
             checkSessionChange()
 
 def checkDriver():
     currentDriver = ir['DriverInfo']['Drivers'][state.driverIdx]['UserName']
 
-    if syncState.updateDriver(currentDriver):
+    if state.runningDriverName != currentDriver:
         print('Driver change: ' + currentDriver)
         state.updateRunningDriver(ir)
 
@@ -91,8 +86,7 @@ def checkSessionChange():
     if state.updateSession(ir):
 
         state.updateRunningDriver(ir)
-        connector.updatePostUrl(config, state.runningTeam)
-
+        
         if state.sessionId == '0' or ir['DriverInfo']['Drivers'][state.driverIdx]['TeamID'] == 0:
             state.sessionType = 'single'
         else:
@@ -102,24 +96,14 @@ def checkSessionChange():
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
-        syncState.stintCount = 0
-        syncState.stintLap = 0
-        syncState.resetPitstop()
-
         if state.itsMe(iracingId):
             sessionInfo = SessionInfo(collectionName, ir)
             
-            print(sessionInfo.toDict())
-            sessionData = sessionInfo.sessionDataMessage()
+            if debug:
+                print(sessionInfo.toDict())
+            sessionData = sessionInfo.sessionDataMessage(state)
             
             connector.publish(sessionData)
-
-def syncDriverData():
-    resp = connector.publish(syncState.syncDataMessage(ir, iracingId))
-    if syncState.syncTeamData(resp):
-        print('Sync: ' + str(syncState.toDict()))
-
-
 
 # our main loop, where we retrieve data
 # and do something useful with it
@@ -136,45 +120,39 @@ def loop():
     lap = ir['LapCompleted']
     lastLaptime = 0
     if ir['LapLastLapTime'] > 0:
-        lastLaptime = ir['LapLastLapTime']  / 86400
-    elif debug:
-        print('no last laptime')
+        lastLaptime = ir['LapLastLapTime']
+    
 
     # check for driver change
     checkDriver()
 
-    # check for pit enter/exit
-    syncState.updatePits(state, ir)
-    if state.tick % 10 == 0:
-        syncDriverData()
-
-#    collectionName = state.getCollectionName(ir)
-
-    if lap > state.lap and lastLaptime != syncState.lastLaptime:
+    if lap > state.lap:
+    #if lap > state.lap and lastLaptime != 0:
     #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
-        syncState.updateLap(lap, lastLaptime)
+        state.lastLaptime = lastLaptime
 
-        lapdata = LapData(syncState, ir)
+        lapdata = LapData(state.runningDriverName, ir)
         state.fuel = ir['FuelLevel']
 
         if state.itsMe(iracingId):
-            if syncState.isPitopComplete():
-                pitstopData = syncState.pitstopDataMessage()
-                print(pitstopData)
-                logging.info(pitstopData)
-                connector.publish(pitstopData)
-                syncState.resetPitstop()
-                
-
-            lapmsg = lapdata.lapDataMessage()
+            lapmsg = lapdata.lapDataMessage(state)
             connector.publish(lapmsg)
             if debug:
                 print(lapdata.toDict())
     else:
         checkSessionChange()
-        if state.itsMe(iracingId) and runData.update(ir):
-            connector.publish(runData.runDataMessage())
+        if state.itsMe(iracingId):
+            if runData.update(ir):
+                connector.publish(runData.runDataMessage(state))
+            if eventData.updateEvent(state, ir):
+                connector.publish(eventData.eventDataMessage(state))
+                if debug:
+                    print(eventData.toDict())
+        else:
+            # every 3 ticks
+            if state.tick % 3 == 0:
+                connector.publish(runData.syncDataMessage(state, ir))
 
 def banner():
     print("=============================")
@@ -211,11 +189,8 @@ if __name__ == '__main__':
     try:
         connector = connect.Connector(config)
     except Exception as ex:
-        print('Unable to connect to Google infrastructure: ' + str(ex))
+        print('Unable initialize connector: ' + str(ex))
         sys.exit(1)
-
-    if config.has_option('global', 'logfile'):
-        logging.basicConfig(filename=str(config['global']['logfile']),level=logging.INFO)
 
     if config.has_option('global', 'iracingId'):
         iracingId = config['global']['iracingId']
@@ -231,8 +206,8 @@ if __name__ == '__main__':
     # initializing ir and state
     ir = irsdk.IRSDK()
     state = LocalState()
-    syncState = SyncState()
     runData = RunData()
+    eventData = EventData()
 
     while True:
         try:
