@@ -13,7 +13,7 @@ This affects some data which is needed to calculate driving tactics, especially
 ## Solution
 
 If all team members are running the teamtactics client, the following telemetry
-data is collected and aggregated into a Google Firestore database:
+data is collected and aggregated into a cloud server:
 
 * LapCompleted
 * LapLastLapTime
@@ -28,9 +28,8 @@ data is collected and aggregated into a Google Firestore database:
 * PitRepairLeft
 * PitOptRepairLeft
 * SessionTimeOfDay when entering/exiting pits and stop/start moving in pits
-
-In addition a stint number and lap number in stint is calculated based to the
-pit entry/exit events.
+* TrackLocations
+* Flags
 
 With this information the team's strategy can be calculated based on near realtime data.
 A client which makes use of this data is subject of another project.
@@ -60,11 +59,11 @@ A client which makes use of this data is subject of another project.
 	;simulate = data/monzasunset.dump
 
 	[connect]
-	# Configure the url's post targets for your iRacing teams. The configuration key
-	# has to be the exact iRacing team name (case sensitive) excluding blanks
-	FBPRacingRED  = <team-url>
-	FBPRacingBLUE = <team-url>
-	# Fallback-URL for publishing data
+	# Fill in the client access token from your TeamTactics profile at
+	# https://iracing-team-tactics.appspot.com/profile
+	clientAccessToken =
+
+	# URL where the client send its messages to - usually no subject to change
 	postUrl       = noFallback
 
 
@@ -72,31 +71,6 @@ To start a session recording:
 
 	teamtactics.exe
 	
-## Data collections
-
-All session data is gathered within a Firestore collection. For a single session the
-collection name will be
-
-	<UserName>@<car>#<track>#<SessionNumber>
-	
-, for a team session
-
-	<teamName>@<sessionId>#<subsessionId>#<sessionNumber>
-	
-is used.
-
-Each collection contains an 'info' document containing the track name, team name,
-client version, max. session laps and max. session time. Depending on the event 
-type only one of the latter is relevant.
-
-Each collection also maintains a 'state' document containing the stint number,
-stint laps, timestamps for pit lane entry/exit and start/stop of car movement,
-Towing and Repair times and the session id's. This information is used to 
-synchronize the teamtactics data among all team members.
-
-The telemetry data mentioned above is collected in one document per lap - so document
-'1' contains data for race lap 1.
-
 
 ## Developer info
 ### Prerequisites
