@@ -33,7 +33,7 @@ def checkSessionFlags(sessionFlags):
     _flags = []
 
     if sessionFlags & 0x00000001:
-        _flags.append('CHECKERD')
+        _flags.append('CHECKERED')
     if sessionFlags & 0x00000002:
         _flags.append('WHITE')
     if sessionFlags & 0x00000004:
