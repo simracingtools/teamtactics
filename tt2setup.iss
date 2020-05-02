@@ -5,7 +5,7 @@
 #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
-#define MyAppVersion "2.00"
+#define MyAppVersion "2.01"
 #define MyAppPublisher "Bausdorf engineering"
 #define MyAppURL "https://github.com/robbyb67/simracing/tree/master/team-tactics"
 #define MyAppExeName "teamtactics2.exe"
@@ -60,7 +60,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#ProjectBaseDir}\dist\teamtactics2.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\dist\tesseract-colored.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\dist\teamtactics2.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#ProjectBaseDir}\dist\irtactics.ini"; DestDir: "{app}"; Flags: ignoreversion comparetimestamp
+Source: "{#ProjectBaseDir}\dist\irtactics.ini"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\dist\liesmich.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectBaseDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
