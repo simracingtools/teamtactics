@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.01"
+__version__ = "2.02"
 
 import sys
 import configparser
@@ -118,17 +118,17 @@ def loop():
     ir.freeze_var_buffer_latest()
 
     state.tick += 1
-    lap = ir['LapCompleted']
+    lap = ir['Lap']
     lastLaptime = 0
-    if ir['LapLastLapTime'] > 0:
-        lastLaptime = ir['LapLastLapTime']
+    #if ir['LapLastLapTime'] > 0:
+    lastLaptime = ir['LapLastLapTime']
     
 
     # check for driver change
     checkDriver()
 
-    if lap > state.lap:
-    #if lap > state.lap and lastLaptime != 0:
+    #if lap > state.lap:
+    if lap > state.lap and lastLaptime != state.lastLaptime:
     #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
         state.lap = lap
         state.lastLaptime = lastLaptime
@@ -139,8 +139,7 @@ def loop():
         if state.itsMe(iracingId):
             lapmsg = lapdata.lapDataMessage(state)
             connector.publish(lapmsg)
-            if debug:
-                print(lapdata.toDict())
+            print(lapdata.toDict())
     else:
         checkSessionChange()
         if state.itsMe(iracingId):
@@ -148,8 +147,7 @@ def loop():
                 connector.publish(runData.runDataMessage(state))
             if eventData.updateEvent(state, ir):
                 connector.publish(eventData.eventDataMessage(state))
-                if debug:
-                    print(eventData.toDict())
+                print(eventData.toDict())
         else:
             # every 3 ticks
             if state.tick % 3 == 0:

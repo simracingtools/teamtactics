@@ -51,7 +51,7 @@ class LocalState:
     subSessionId = -1
     collectionName = ''
     sessionNum = -1
-    lastLaptime = 0
+    lastLaptime = -1
 
     def reset(self):
         self.date_time = -1
@@ -140,7 +140,10 @@ class LapData:
         _lapdata = {}
         _lapdata['lap'] = self.lap
         _lapdata['driver'] = self.driver
-        _lapdata['laptime'] = self.laptime
+        if self.laptime > 0:
+            _lapdata['laptime'] = self.laptime
+        else:
+            _lapdata['laptime'] = 0.0
         _lapdata['fuelLevel'] = self.fuelLevel
         _lapdata['trackTemp'] = self.trackTemp
         _lapdata['sessionTime'] = self.sessionTime
