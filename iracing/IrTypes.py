@@ -123,23 +123,26 @@ class LapData:
     stintLap = 0
     stintCount = 1
     driver = ''
+    driverId = ''
     laptime = 0
     fuelLevel = 0
     trackTemp = 0
     sessionTime = 0
 
-    def __init__(self, currentDriver, ir):
+    def __init__(self, currentDriver, clientId, ir):
         self.lap = ir['Lap']
         self.fuelLevel = ir['FuelLevel']
         self.trackTemp = ir['TrackTemp']
         self.sessionTime = ir['SessionTime']
         self.laptime = ir['LapLastLapTime']
         self.driver = currentDriver
+        self.driverId = clientId
 
     def toDict(self):
         _lapdata = {}
         _lapdata['lap'] = self.lap
         _lapdata['driver'] = self.driver
+        _lapdata['driverId'] = self.driverId
         if self.laptime > 0:
             _lapdata['laptime'] = self.laptime
         else:
@@ -266,12 +269,14 @@ class EventData:
     towTime = 0.0
     repairTime = 0.0
     optRepairTime = 0.0
+    serviceFlags = 0
 
     def updateEvent(self, state, ir):
         _changed = False
         self.sessionTime = ir['SessionTime']
         self.sessionToD = ir['SessionTimeOfDay']
         self.flags = ir['SessionFlags']
+        self.serviceFlags = ir['PitSvFlags']
     
         if self.repairTime != ir['PitRepairLeft']:
             self.repairTime = ir['PitRepairLeft']
@@ -300,6 +305,7 @@ class EventData:
         _dict['towingTime'] = self.towTime
         _dict['repairTime'] = self.repairTime
         _dict['optRepairTime'] = self.optRepairTime
+        _dict['serviceFlags'] = self.serviceFlags
         return _dict
 
     def eventDataMessage(self, state):

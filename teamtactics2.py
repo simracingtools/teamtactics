@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.02"
+__version__ = "2.03"
 
 import sys
 import configparser
@@ -133,7 +133,7 @@ def loop():
         state.lap = lap
         state.lastLaptime = lastLaptime
 
-        lapdata = LapData(state.runningDriverName, ir)
+        lapdata = LapData(state.runningDriverName, state.clientId, ir)
         state.fuel = ir['FuelLevel']
 
         if state.itsMe(iracingId):
