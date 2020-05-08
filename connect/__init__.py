@@ -32,11 +32,14 @@ __status__ = "Beta"
 import logging
 import sys
 import requests
+import time
+import json
 
 class Connector:
     postUrl = ''
     headers = {'x-teamtactics-token': 'None'}
-    
+    invalidMessageCount = 0
+
     def __init__(self, config):
         print('Initializing connector')
         if config.has_option('connect', 'postUrl'):
@@ -55,10 +58,49 @@ class Connector:
     def publish(self, jsonData):
         try:
             logging.info(jsonData)
-            if self.postUrl != '':
+            if self.postUrl != '' and self.invalidMessageCount < 10:
                 response = requests.post(self.postUrl, data=jsonData, headers=self.headers, timeout=10.0)
-                return response
+                returnMessage = response.text
+                if returnMessage == 'AUTHORIZATION_ERROR':
+                    print('Client access token ' + self.headers['x-teamtactics-token'] + ' is not accepted.')
+                    print('Please check on https://iracing-team-tactics.appspot.com/profile')
+                    time.sleep(10)
+                    logging.error('AUTHORIZATION_ERROR')
+                    sys.exit(1)
+                elif returnMessage == 'TOKEN_ERROR':
+                    print('The authorization header did not reach the server, maybe proxy/firewall issue.')
+                    logging.error('TOKEN_ERROR')
+                    time.sleep(10)
+                    sys.exit(1)
+                elif returnMessage == 'VALIDATION_ERROR':
+                    self.invalidMessageCount += 1
+                    if self.invalidMessageCount == 10:
+                        print('Reached invalid message count of 10.')
+                        print('This client will not send any further messages until restarted.')
+                elif returnMessage == 'UNSUPPORTED_CLIENT':
+                    print('Client protocol not accepted')
+                    logging.error('UNSUPPORTED_CLIENT')
+                    time.sleep(10)
+                    sys.exit(1)
+
+                return returnMessage
 
         except Exception as ex:
             print('Unable to publish data: ' + str(ex))
+
+    def getClientVersion(self):
+        response = requests.get('https://api.github.com/repos/simracingtools/teamtactics/releases/latest')
+        return response.json()
+
+    def pingServer(self, clientId, protocolVersion, clientVersion):
+        _msg = {}
+        _msg['type'] = 'ping'
+        _msg['version'] = protocolVersion
+        _msg['sessionId'] = 'NONE'
+        _msg['teamId'] = 'NONE'
+        _msg['clientId'] = clientId
+        _msg['payload'] = { 'clientVersion': clientVersion }
+
+        return self.publish(json.dumps(_msg))
+
 

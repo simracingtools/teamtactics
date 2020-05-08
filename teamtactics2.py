@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.04"
+__version__ = "2.05"
 
 import sys
 import configparser
@@ -42,6 +42,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import connect
+import iracing.IrTypes
 from iracing.IrTypes import LapData
 from iracing.IrTypes import SessionInfo
 from iracing.IrTypes import LocalState
@@ -187,6 +188,12 @@ if __name__ == '__main__':
 
     try:
         connector = connect.Connector(config)
+        lastestVersion = connector.getClientVersion()
+        if float(__version__) < float(lastestVersion['tag_name'][1:]):
+            print('There is a newer Version available - please update to ' + lastestVersion['tag_name'])
+            print(lastestVersion['assets'][0]['browser_download_url'])
+        else:
+            print('Version ' + lastestVersion['tag_name'] + ' is up to date')
     except Exception as ex:
         print('Unable initialize connector: ' + str(ex))
         sys.exit(1)
@@ -201,6 +208,14 @@ if __name__ == '__main__':
     else:
         print('option iRacingId not configured or irtactics.ini not found')
         sys.exit(1)
+
+    pingResponse = connector.pingServer(str(iracingId), iracing.IrTypes.__version__, __version__)
+    if pingResponse != 'PING':
+        print('Server does not answer ping: ' + pingResponse)
+        time.sleep(10)
+        sys.exit(1)
+    else:
+        print('Server reacheable and responding')
 
     # initializing ir and state
     ir = irsdk.IRSDK()
