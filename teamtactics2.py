@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.05"
+__version__ = "2.06"
 
 import sys
 import configparser
@@ -98,14 +98,15 @@ def checkSessionChange():
         print('SessionType: ' + state.sessionType)
         print('SessionId  : ' + collectionName)
 
-        if state.itsMe(iracingId):
-            sessionInfo = SessionInfo(collectionName, ir)
-            
-            if debug:
-                print(sessionInfo.toDict())
-            sessionData = sessionInfo.sessionDataMessage(state)
-            
-            connector.publish(sessionData)
+        #if state.itsMe(iracingId):
+        sessionInfo = SessionInfo(collectionName, ir)
+        
+        if debug:
+            print(sessionInfo.toDict())
+        
+        # Session change is announced to server even if not in car.
+        # Duplicates are detected and filtered by the server
+        connector.publish(sessionInfo.sessionDataMessage(state))
 
 # our main loop, where we retrieve data
 # and do something useful with it
