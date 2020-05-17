@@ -8,7 +8,7 @@ members during a team event.
 Some of the telemetry data in iRacing is delayed for all currently not driving
 team members because of anti-cheat reasons.
 This affects some data which is needed to calculate driving tactics, especially
-- but not only - fuel data.
+but not only - fuel data.
 
 ## Solution
 
@@ -78,20 +78,7 @@ To start a session recording:
 
 	pip3 install pyirsdk
 
-#### Google cloud firestore
-
-	pip3 install --upgrade google-cloud-firestore
-
-#### Google cloud pub-sub hub
-
-	pip3 install --upgrade google-cloud-pubsub
-
-### Build
-
-Follow instructions at 
-https://stackoverflow.com/questions/55848884/google-cloud-firestore-distribution-doesnt-get-added-to-pyinstaller-build
-
-Run
+### Packaging
 
     pyinstaller --clean --icon dist/teamtactics2.ico -F teamtactics2.py
 
