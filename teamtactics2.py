@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.06"
+__version__ = "2.07"
 
 import sys
 import configparser
@@ -121,8 +121,6 @@ def loop():
 
     state.tick += 1
     lap = ir['Lap']
-    lastLaptime = 0
-    #if ir['LapLastLapTime'] > 0:
     lastLaptime = ir['LapLastLapTime']
     
 
@@ -130,8 +128,8 @@ def loop():
     checkDriver()
 
     #if lap > state.lap:
-    if lap > state.lap and lastLaptime != state.lastLaptime:
-    #if lastLaptime > 0 and syncState.lastLaptime != lastLaptime:
+    #if lap > state.lap and lastLaptime != state.lastLaptime:
+    if lastLaptime != state.lastLaptime:
         state.lap = lap
         state.lastLaptime = lastLaptime
 
