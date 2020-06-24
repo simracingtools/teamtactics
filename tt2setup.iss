@@ -5,7 +5,7 @@
 #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
-#define MyAppVersion "2.07"
+#define MyAppVersion "2.08"
 #define MyAppPublisher "Bausdorf engineering"
 #define MyAppURL "https://github.com/robbyb67/simracing/tree/master/team-tactics"
 #define MyAppExeName "teamtactics2.exe"
@@ -52,6 +52,7 @@ UserInfoOrg=&Client access token:
 [INI]
 Filename: "{app}\irtactics.ini"; Section: "global"; Key: "iracingId"; String: "{userinfoname}"
 Filename: "{app}\irtactics.ini"; Section: "connect"; Key: "clientAccessToken"; String: "{userinfoorg}"
+Filename: "{app}\irtactics.ini"; Section: "connect"; Key: "postUrl"; String: "http://team-tactics.bausdorf-engineering.de/clientmessage"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
