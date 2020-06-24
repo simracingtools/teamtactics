@@ -26,7 +26,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "1.32"
+__version__ = "1.33"
 
 from distutils.log import info
 
@@ -207,6 +207,9 @@ class RunData:
     fuelLevel = 0
     flags = []
     sessionTime = -1
+    sessionTimeRemaining = -1
+    sessionLapsRemaining = -1
+    sessionState = -1
     sessionToD = -1
     estLaptime = 0
     lapNo = 0
@@ -225,6 +228,9 @@ class RunData:
             self.estLaptime = ir['DriverInfo']['DriverCarEstLapTime']
 
         self.sessionTime = ir['SessionTime']
+        self.sessionTimeRemaining = ir['SessionTimeRemain']
+        self.sessionLapsRemaining = ir['SessionLapsRemain']
+        self.sessionState = ir['SessionState']
         self.sessionToD = ir['SessionTimeOfDay']
         self.lapNo = ir['Lap']
         self.timeInLap = ir['LapCurrentLapTime']
@@ -238,6 +244,9 @@ class RunData:
         _dict['fuelLevel'] = self.fuelLevel
         _dict['flags'] = iracing.checkSessionFlags(self.flags)
         _dict['sessionTime'] = self.sessionTime
+        _dict['sessionTimeRemain'] = self.sessionTimeRemaining
+        _dict['sessionLapsRemain'] = self.sessionLapsRemaining
+        _dict['sessionState'] = self.sessionState
         _dict['sessionToD'] = self.sessionToD
         _dict['estLaptime'] = self.estLaptime
         _dict['lapNo'] = self.lapNo
