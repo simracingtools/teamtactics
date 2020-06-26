@@ -26,7 +26,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "1.33"
+__version__ = "1.34"
 
 from distutils.log import info
 
@@ -319,6 +319,93 @@ class EventData:
 
     def eventDataMessage(self, state):
         return toMessageJson('event', state, self.toDict())
+
+class TyreData:
+    lfO = 0
+    lfM = 0
+    lfI = 0
+    rfO = 0
+    rfM = 0
+    rfI = 0
+    lrO = 0
+    lrM = 0
+    lrI = 0
+    rrO = 0
+    rrM = 0
+    rrI = 0
+
+    def updateTyres(self, ir):
+        _changed = False
+
+        if self.lfO != ir['LFwearL']:
+            self.lfO = ir['LFwearL']
+            _changed = True
+
+        if self.lfM != ir['LFwearM']:
+            self.lfM = ir['LFwearM']
+            _changed = True
+
+        if self.lfI != ir['LFwearR']:
+            self.lfI = ir['LFwearR']
+            _changed = True
+
+        if self.rfO != ir['RFwearR']:
+            self.rfO = ir['RFwearR']
+            _changed = True
+
+        if self.rfM != ir['RFwearM']:
+            self.rfM = ir['RFwearM']
+            _changed = True
+
+        if self.rfI != ir['RFwearR']:
+            self.rfI = ir['RFwearL']
+            _changed = True
+
+        if self.lrO != ir['LRwearL']:
+            self.lrO = ir['LRwearL']
+            _changed = True
+
+        if self.lrM != ir['LRwearM']:
+            self.lrM = ir['LRwearM']
+            _changed = True
+
+        if self.lrI != ir['LRwearR']:
+            self.lrI = ir['LRwearR']
+            _changed = True
+
+        if self.rrO != ir['RRwearR']:
+            self.rrO = ir['RRwearR']
+            _changed = True
+
+        if self.rrM != ir['RRwearM']:
+            self.rrM = ir['RRwearM']
+            _changed = True
+
+        if self.rrI != ir['RRwearL']:
+            self.rrI = ir['RRwearR']
+            _changed = True
+
+        return _changed
+
+    def toDict(self):
+        _dict = {}
+        _dict['lfOwear'] = self.lfO
+        _dict['lfMwear'] = self.lfM
+        _dict['lfIwear'] = self.lfI
+        _dict['rfOwear'] = self.rfO
+        _dict['rfMwear'] = self.rfM
+        _dict['rfIwear'] = self.rfI
+        _dict['lrOwear'] = self.lrO
+        _dict['lrMwear'] = self.lrM
+        _dict['lrIwear'] = self.lrI
+        _dict['rrOwear'] = self.rrO
+        _dict['rrMwear'] = self.rrM
+        _dict['rrIwear'] = self.rrI
+
+        return _dict
+
+    def tyreDataMessage(self, state):
+        return toMessageJson('tyres', state, self.toDict())
 
 def toMessageJson(type, state, payload):
     _msg = {}

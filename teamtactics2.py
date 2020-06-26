@@ -29,7 +29,7 @@ __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 #__maintainer__ = "developer"
 __status__ = "Beta"
-__version__ = "2.08"
+__version__ = "2.09"
 
 import sys
 import configparser
@@ -48,6 +48,7 @@ from iracing.IrTypes import SessionInfo
 from iracing.IrTypes import LocalState
 from iracing.IrTypes import RunData
 from iracing.IrTypes import EventData
+from iracing.IrTypes import TyreData
 
 # here we check if we are connected to iracing
 # so we can retrieve some data
@@ -147,7 +148,9 @@ def loop():
                 connector.publish(runData.runDataMessage(state))
             if eventData.updateEvent(state, ir):
                 connector.publish(eventData.eventDataMessage(state))
-                print(eventData.toDict())
+            if tyreData.updateTyres(ir):
+                connector.publish(tyreData.tyreDataMessage(state))
+                print(tyreData.toDict())
         else:
             # every 3 ticks
             if state.tick % 3 == 0:
@@ -221,6 +224,7 @@ if __name__ == '__main__':
     state = LocalState()
     runData = RunData()
     eventData = EventData()
+    tyreData = TyreData()
 
     while True:
         try:

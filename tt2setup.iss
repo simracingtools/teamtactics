@@ -5,7 +5,7 @@
 #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
-#define MyAppVersion "2.08"
+#define MyAppVersion "2.09"
 #define MyAppPublisher "Bausdorf engineering"
 #define MyAppURL "https://github.com/robbyb67/simracing/tree/master/team-tactics"
 #define MyAppExeName "teamtactics2.exe"
