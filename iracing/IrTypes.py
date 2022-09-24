@@ -19,12 +19,10 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 __author__ = "Robert Bausdorf"
 __contact__ = "rbausdorf@gmail.com"
 __copyright__ = "2020, bausdorf engineering"
-#__credits__ = ["One developer", "And another one", "etc"]
 __date__ = "2020/01/06"
 __deprecated__ = False
 __email__ =  "rbausdorf@gmail.com"
 __license__ = "GPLv3"
-#__maintainer__ = "developer"
 __status__ = "Beta"
 __version__ = "1.34"
 
@@ -34,6 +32,7 @@ import irsdk
 import json
 import iracing
 import logging
+
 
 class LocalState:
     ir_connected = False
@@ -154,7 +153,7 @@ class LapData:
         return _lapdata
 
     def lapDataMessage(self, state):
-        return toMessageJson('lapdata', state, self.toDict())
+        return to_message_json('lapdata', state, self.toDict())
      
 class SessionInfo:
     sessionId = ''
@@ -201,7 +200,7 @@ class SessionInfo:
         return _info
 
     def sessionDataMessage(self, state):
-        return toMessageJson('sessionInfo', state, self.toDict())
+        return to_message_json('sessionInfo', state, self.toDict())
 
 class RunData:
     fuelLevel = 0
@@ -242,7 +241,7 @@ class RunData:
     def toDict(self):
         _dict = {}
         _dict['fuelLevel'] = self.fuelLevel
-        _dict['flags'] = iracing.checkSessionFlags(self.flags)
+        _dict['flags'] = iracing.check_session_flags(self.flags)
         _dict['sessionTime'] = self.sessionTime
         _dict['sessionTimeRemain'] = self.sessionTimeRemaining
         _dict['sessionLapsRemain'] = self.sessionLapsRemaining
@@ -255,7 +254,7 @@ class RunData:
         return _dict
 
     def runDataMessage(self, state):
-        return toMessageJson('runData', state, self.toDict())
+        return to_message_json('runData', state, self.toDict())
 
     def syncData(self, ir, state):
         _syncData = {}
@@ -268,7 +267,7 @@ class RunData:
         return _syncData
 
     def syncDataMessage(self, state, ir):
-        return toMessageJson('syncData', state, self.syncData(ir, state))
+        return to_message_json('syncData', state, self.syncData(ir, state))
 
 class EventData:
     sessionTime = 0.0
@@ -318,7 +317,7 @@ class EventData:
         return _dict
 
     def eventDataMessage(self, state):
-        return toMessageJson('event', state, self.toDict())
+        return to_message_json('event', state, self.toDict())
 
 class TyreData:
     lfO = 0
@@ -405,15 +404,15 @@ class TyreData:
         return _dict
 
     def tyreDataMessage(self, state):
-        return toMessageJson('tyres', state, self.toDict())
+        return to_message_json('tyres', state, self.toDict())
 
-def toMessageJson(type, state, payload):
+def to_message_json(type, state, payload):
     _msg = {}
     _msg['type'] = type
     _msg['version'] = __version__
     _msg['sessionId'] = state.collectionName
     _msg['teamId'] = state.teamId
-    _msg['clientId'] = state.clientId
+    _msg['client_id'] = state.clientId
     _msg['payload'] = payload
 
     return json.dumps(_msg)

@@ -14,71 +14,68 @@ This program is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
-this program. If not, see <http://www.gnu.org/licenses/>.
+this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 __author__ = "Robert Bausdorf"
 __contact__ = "rbausdorf@gmail.com"
 __copyright__ = "2020, bausdorf engineering"
-#__credits__ = ["One developer", "And another one", "etc"]
 __date__ = "2020/01/06"
 __deprecated__ = False
-__email__ =  "rbausdorf@gmail.com"
+__email__ = "rbausdorf@gmail.com"
 __license__ = "GPLv3"
-#__maintainer__ = "developer"
 __status__ = "Beta"
-#__version__ = "0.5"
 
-def checkSessionFlags(sessionFlags):
-    _flags = []
+def check_session_flags(session_flags):
+    flags_local = []
 
-    if sessionFlags & 0x00000001:
-        _flags.append('CHECKERED')
-    if sessionFlags & 0x00000002:
-        _flags.append('WHITE')
-    if sessionFlags & 0x00000004:
-        _flags.append('GREEN')
-    if sessionFlags & 0x00000008:
-        _flags.append('YELLOW')
-    if sessionFlags & 0x00000010:
-        _flags.append('RED')
-    if sessionFlags & 0x00000020:
-        _flags.append('BLUE')
-    if sessionFlags & 0x00000040:
-        _flags.append('DEBRIS')
-    if sessionFlags & 0x00000080:
-        _flags.append('CROSSED')
-    if sessionFlags & 0x00000100:
-        _flags.append('YELLOW_WAVED')
-    if sessionFlags & 0x00000200:
-        _flags.append('ONE_TO_GREEN')
-    if sessionFlags & 0x00000400:
-        _flags.append('GREEN_HELD')
-    if sessionFlags & 0x00000800:
-        _flags.append('TEN_TO_GO')
-    if sessionFlags & 0x00001000:
-        _flags.append('FIVE_TO_GO')
-    if sessionFlags & 0x00002000:
-        _flags.append('RANDOM_WAVED')
-    if sessionFlags & 0x00004000:
-        _flags.append('CAUTION')
-    if sessionFlags & 0x00008000:
-        _flags.append('CAUTION_WAVED')
-    if sessionFlags & 0x00010000:
-        _flags.append('BLACK')
-    if sessionFlags & 0x00020000:
-        _flags.append('DQ')
-    if sessionFlags & 0x00040000:
-        _flags.append('SERVICEABLE')
-    if sessionFlags & 0x00080000:
-        _flags.append('FURLED')
-    if sessionFlags & 0x0010000:
-        _flags.append('REPAIR')
-    if sessionFlags & 0x10000000:
-        _flags.append('START_HIDDEN')
-    if sessionFlags & 0x20000000:
-        _flags.append('START_READY')
-    if sessionFlags & 0x40000000:
-        _flags.append('START_SET')
+    if session_flags & 0x00000001:
+        flags_local.append('CHECKERED')
+    if session_flags & 0x00000002:
+        flags_local.append('WHITE')
+    if session_flags & 0x00000004:
+        flags_local.append('GREEN')
+    if session_flags & 0x00000008:
+        flags_local.append('YELLOW')
+    if session_flags & 0x00000010:
+        flags_local.append('RED')
+    if session_flags & 0x00000020:
+        flags_local.append('BLUE')
+    if session_flags & 0x00000040:
+        flags_local.append('DEBRIS')
+    if session_flags & 0x00000080:
+        flags_local.append('CROSSED')
+    if session_flags & 0x00000100:
+        flags_local.append('YELLOW_WAVED')
+    if session_flags & 0x00000200:
+        flags_local.append('ONE_TO_GREEN')
+    if session_flags & 0x00000400:
+        flags_local.append('GREEN_HELD')
+    if session_flags & 0x00000800:
+        flags_local.append('TEN_TO_GO')
+    if session_flags & 0x00001000:
+        flags_local.append('FIVE_TO_GO')
+    if session_flags & 0x00002000:
+        flags_local.append('RANDOM_WAVED')
+    if session_flags & 0x00004000:
+        flags_local.append('CAUTION')
+    if session_flags & 0x00008000:
+        flags_local.append('CAUTION_WAVED')
+    if session_flags & 0x00010000:
+        flags_local.append('BLACK')
+    if session_flags & 0x00020000:
+        flags_local.append('DQ')
+    if session_flags & 0x00040000:
+        flags_local.append('SERVICEABLE')
+    if session_flags & 0x00080000:
+        flags_local.append('FURLED')
+    if session_flags & 0x0010000:
+        flags_local.append('REPAIR')
+    if session_flags & 0x10000000:
+        flags_local.append('START_HIDDEN')
+    if session_flags & 0x20000000:
+        flags_local.append('START_READY')
+    if session_flags & 0x40000000:
+        flags_local.append('START_SET')
 
-    return _flags
+    return flags_local

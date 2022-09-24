@@ -23,7 +23,7 @@ class IrTypesTest:
 
     def testSessionFlags(self):
         print(str(hex(268697600)))
-        flags = iracing.checkSessionFlags(268697600)
+        flags = iracing.check_session_flags(268697600)
         print(flags)
 
 
