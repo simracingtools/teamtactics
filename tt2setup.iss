@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 ; Change this base path to your needs
-#define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
+; #define ProjectBaseDir "D:\Users\robert\Projects\teamtactics"
 
 #define MyAppName "TeamTactics2"
 #define MyAppVersion "2.09"
