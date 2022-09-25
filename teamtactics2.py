@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
     pingResponse = connector.ping_server(str(iracingId), iracing.IrTypes.__version__, __version__)
     if pingResponse != 'PING':
-        print('Server does not answer ping: ' + pingResponse)
+        print('Server does not answer ping: ' + str(pingResponse))
         time.sleep(10)
         sys.exit(1)
     else:
