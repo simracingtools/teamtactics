@@ -1,10 +1,9 @@
-name: Tag and release application
+name: Release application
 
 on:
   push:
-    tags:
-      - V*.*
-      - v*.*
+    branches:
+      - main
 
 jobs:
   build:
@@ -31,6 +30,7 @@ jobs:
           iscc -DProjectBaseDir="." .\tt2setup.iss
       - name: Create release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: false
           prerelease: false
