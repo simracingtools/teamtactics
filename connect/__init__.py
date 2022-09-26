@@ -40,8 +40,8 @@ class Connector:
 
     def __init__(self, config):
         print('Initializing connector')
-        if config.has_option('connect', 'post_url'):
-            self.post_url = str(config['connect']['post_url'])
+        if config.has_option('connect', 'postUrl'):
+            self.post_url = str(config['connect']['postUrl'])
 
         if self.post_url == '':
             print('No Url configured, only logging events')

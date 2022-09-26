@@ -26,7 +26,7 @@ __deprecated__ = False
 __email__ = "rbausdorf@gmail.com"
 __license__ = "GPLv3"
 __status__ = "Beta"
-__version__ = "2.09"
+__version__ = "2.10"
 
 import sys
 import configparser
@@ -209,7 +209,8 @@ if __name__ == '__main__':
 
     pingResponse = connector.ping_server(str(iracingId), iracing.IrTypes.__version__, __version__)
     if pingResponse != 'PING':
-        print('Server does not answer ping: ' + pingResponse)
+        print('Server answer: ' + str(pingResponse))
+        print('Server does not correctly answer to PING request')
         time.sleep(10)
         sys.exit(1)
     else:
