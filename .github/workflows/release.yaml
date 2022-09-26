@@ -3,6 +3,7 @@ name: Tag and release application
 on:
   push:
     tags:
+      - "V*.*"
       - "v*.*"
 
 jobs:
