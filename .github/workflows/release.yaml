@@ -3,8 +3,8 @@ name: Tag and release application
 on:
   push:
     tags:
-      - "V*.*"
-      - "v*.*"
+      - V*.*
+      - v*.*
 
 jobs:
   build:
