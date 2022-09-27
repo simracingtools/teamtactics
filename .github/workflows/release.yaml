@@ -1,10 +1,14 @@
 name: Release application
 
-on: [push]
+on:
+  push:
+    tags:
+      - "V*"
+      - "v*"
 
 jobs:
   build:
-    if: startsWith(github.ref, 'refs/tags/')
+#    if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     strategy:
       matrix:
@@ -26,12 +30,10 @@ jobs:
           pyinstaller --clean --icon dist/teamtactics2.ico -F teamtactics2.py
           iscc -DProjectBaseDir="." .\tt2setup.iss
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: marvinpinto/action-automatic-releases@v1
         with:
-          draft: false
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generate_release_notes: true
           files: |
             dist/TeamTactics2Setup.exe
