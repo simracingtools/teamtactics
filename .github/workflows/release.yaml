@@ -1,6 +1,7 @@
 name: Release application
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "V*"
